@@ -26,6 +26,31 @@ def test_forecast_returns_requested_quarters(quarters):
     assert set(result["mape"]) == {"prophet", "naive", "seasonal_naive"}
 
 
+def test_range_is_at_least_backtest_width():
+    # A noisy series, so the backtest errors are clearly bigger than Prophet's own range
+    rng = np.random.default_rng(3)
+    values = [100 * (1.03 ** i) * (1 + rng.normal(0, 0.08)) for i in range(14)]
+    result = forecast_series(quarterly(values), quarters=3)
+    q = np.quantile(result["backtest_abs_pct_errors"], 0.8)
+    assert result["interval_pct"] == pytest.approx(q)
+    fc = result["forecast"]
+    # final range is at least as wide as yhat +/- q on both sides ...
+    assert (fc["yhat_upper"] >= fc["yhat"] * (1 + q) - 1e-9).all()
+    assert (fc["yhat_lower"] <= fc["yhat"] * (1 - q) + 1e-9).all()
+    # ... and never narrower than Prophet's own range
+    assert (fc["yhat_upper"] >= fc["prophet_upper"]).all()
+    assert (fc["yhat_lower"] <= fc["prophet_lower"]).all()
+
+
+def test_calibrate_keeps_prophet_range_when_wider():
+    from src.ml.forecast import calibrate_interval
+    fc = pd.DataFrame({"ds": [pd.Timestamp("2026-03-31")], "yhat": [100.0],
+                       "yhat_lower": [50.0], "yhat_upper": [150.0]})  # Prophet: +/-50%
+    out, q = calibrate_interval(fc, [0.05, 0.05, 0.05, 0.05])       # backtest: 5%
+    assert out.loc[0, "yhat_lower"] == 50.0 and out.loc[0, "yhat_upper"] == 150.0
+    assert out.loc[0, "range_source"] == "Prophet"
+
+
 def test_forecast_revenue_real_company():
     result = forecast_revenue(1045810, quarters=2)  # NVIDIA
     assert len(result["forecast"]) == 2

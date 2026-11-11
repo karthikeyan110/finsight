@@ -17,6 +17,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.agent.agent import answer
+from src.ml.anomaly import PLAIN_NAMES  # "NetIncomeLoss" -> "Net income", ...
 
 st.set_page_config(page_title="FinSight", page_icon="📊", layout="wide")
 st.title("📊 FinSight - AI Financial Analyst")
@@ -67,14 +68,20 @@ def readable(df: pd.DataFrame) -> pd.DataFrame:
 def forecast_chart(result: dict, ticker: str):
     """Actual quarterly revenue + forecast with its 80% range."""
     hist, fc = result["history"], result["forecast"]
+    # Start the forecast line and the range band at the last actual point,
+    # so the forecast visibly continues from the real data
+    last_x, last_y = hist["ds"].iloc[-1], hist["y"].iloc[-1]
+    xs = [last_x, *fc["ds"]]
+    upper, lower = [last_y, *fc["yhat_upper"]], [last_y, *fc["yhat_lower"]]
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=hist["ds"], y=hist["y"], mode="lines+markers", name="Actual"))
-    fig.add_trace(go.Scatter(x=list(fc["ds"]) + list(fc["ds"])[::-1],
-                             y=list(fc["yhat_upper"]) + list(fc["yhat_lower"])[::-1],
-                             fill="toself", line=dict(width=0), opacity=0.25,
+    fig.add_trace(go.Scatter(x=xs + xs[::-1], y=upper + lower[::-1], fill="toself",
+                             fillcolor="rgba(255, 127, 14, 0.25)",
+                             line=dict(color="rgba(255, 127, 14, 0.6)", width=1),
                              name="80% range", hoverinfo="skip"))
-    fig.add_trace(go.Scatter(x=fc["ds"], y=fc["yhat"], mode="lines+markers",
-                             line=dict(dash="dash"), name="Forecast"))
+    fig.add_trace(go.Scatter(x=hist["ds"], y=hist["y"], mode="lines+markers", name="Actual",
+                             line=dict(color="#1f77b4")))
+    fig.add_trace(go.Scatter(x=xs, y=[last_y, *fc["yhat"]], mode="lines+markers", name="Forecast",
+                             line=dict(color="#ff7f0e", dash="dash")))
     fig.update_layout(height=340, margin=dict(l=10, r=10, t=40, b=10),
                       title=f"{ticker} quarterly revenue (USD)")
     return fig
@@ -97,9 +104,12 @@ def show(out: dict):
     if out.get("anomalies") is not None and not out["anomalies"].empty:
         a = readable(out["anomalies"][["name", "metric", "period_end", "pct_change",
                                        "z_score", "category"]])
-        # 1.3013 -> "+130%", z 24.723 -> "+24.7" (easier to read)
+        # "NetIncomeLoss" -> "Net income", 1.3013 -> "+130%", z 24.723 -> "+24.7"
+        a["metric"] = a["metric"].map(lambda m: PLAIN_NAMES.get(m, m))
         a["pct_change"] = a["pct_change"].map(lambda x: "" if pd.isna(x) else f"{x * 100:+,.0f}%")
         a["z_score"] = a["z_score"].map(lambda x: "" if pd.isna(x) else f"{x:+.1f}")
+        if (a["category"] == "unusual change").all():  # only interesting when it varies
+            a = a.drop(columns=["category"])
         st.dataframe(a.rename(columns={"pct_change": "YoY change"}),
                      use_container_width=True, hide_index=True)
 

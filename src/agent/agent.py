@@ -103,10 +103,17 @@ def _compose(out: dict) -> str:
 
     if out.get("forecast"):
         f = out["forecast"]
-        lines = [f"**Revenue forecast for {out['ticker']}** (Prophet, 80% range):"]
+        sources = set(f["forecast"]["range_source"])
+        basis = ("range based on backtest errors" if sources == {"backtest errors"}
+                 else "Prophet's range" if sources == {"Prophet"}
+                 else "range from backtest errors or Prophet, whichever is wider")
+        lines = [f"**Revenue forecast for {out['ticker']}** (Prophet, 80% {basis}):"]
         for _, row in f["forecast"].iterrows():
             lines.append(f"- Quarter ending {row['ds'].date()}: **{_money(row['yhat'])}** "
                          f"(range {_money(row['yhat_lower'])} to {_money(row['yhat_upper'])})")
+        if "backtest errors" in sources:
+            lines.append(f"\nThe range is ±{f['interval_pct'] * 100:.1f}%, the 80th percentile of "
+                         "how far off the 4 backtest forecasts were (Prophet's own range was narrower).")
         m = f["mape"]
         lines.append(f"\nBacktest on the last 4 known quarters (average % error): Prophet "
                      f"{m['prophet']:.1f}%, naive {m['naive']:.1f}%, seasonal naive "

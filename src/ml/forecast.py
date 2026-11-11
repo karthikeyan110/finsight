@@ -5,8 +5,13 @@ forecast_revenue(cik, quarters=2) returns a dict:
   excluded                - dates of negative values that were left out
   mape                    - backtest error (%) for "prophet", "naive", "seasonal_naive"
   winner                  - the method with the lowest MAPE
-  forecast                - DataFrame: ds, yhat, yhat_lower, yhat_upper (80% interval)
+  forecast                - DataFrame: ds, yhat, yhat_lower, yhat_upper (80% range),
+                            range_source ("backtest errors" or "Prophet"), prophet_lower/upper
+  interval_pct            - 80th percentile of the backtest's absolute % errors
   warnings                - plain-English data warnings (e.g. mixed revenue tags)
+
+80% range: Prophet's own range is usually too narrow (it assumes its model is right),
+so it is widened to match the real backtest errors when those are bigger.
 
 Backtest: hide the last 4 quarters, train on the rest, compare predictions with
 the real values using MAPE (Mean Absolute Percentage Error, lower = better).
@@ -23,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = ROOT / "data" / "gold" / "finsight.duckdb"
 
 HOLDOUT = 4          # quarters hidden for the backtest
+INTERVAL = 0.80      # forecast range covers ~80% of outcomes
 MIN_POINTS = 8       # fewer quarterly values than this -> don't forecast
 SEASON_TOLERANCE_DAYS = 20  # "same quarter last year" = 1 year earlier, +/- 20 days
 
@@ -80,7 +86,7 @@ def _fit_prophet(history: pd.DataFrame) -> Prophet:
     # Yearly seasonality with fourier order 2: quarterly data has only 4 points per year,
     # so a simple yearly pattern is all it can support. Weekly/daily make no sense here.
     model = Prophet(yearly_seasonality=2, weekly_seasonality=False,
-                    daily_seasonality=False, interval_width=0.80)
+                    daily_seasonality=False, interval_width=INTERVAL)
     model.fit(history[["ds", "y"]])
     return model
 
@@ -109,7 +115,32 @@ def forecast_series(series: pd.DataFrame, quarters: int = 2) -> dict:
                                   for k in range(1, quarters + 1)]})
     forecast = model.predict(future)[["ds", "yhat", "yhat_lower", "yhat_upper"]]
 
-    return {"n_points": len(series), "mape": scores, "winner": winner, "forecast": forecast}
+    # 3) Calibrate the 80% range from how wrong the backtest actually was
+    abs_errors = np.abs((test["y"].values - prophet_pred.values) / test["y"].values)
+    forecast, interval_pct = calibrate_interval(forecast, abs_errors)
+
+    return {"n_points": len(series), "mape": scores, "winner": winner, "forecast": forecast,
+            "backtest_abs_pct_errors": abs_errors.tolist(), "interval_pct": interval_pct}
+
+
+def calibrate_interval(forecast: pd.DataFrame, abs_errors, coverage: float = INTERVAL) -> tuple:
+    """Widen the forecast range so it matches real backtest errors (simple conformal method).
+
+    q = 80th percentile of the backtest's absolute % errors. The backtest-based range is
+    yhat * (1 - q) to yhat * (1 + q). Prophet's own range is kept only where it is wider.
+    Prophet's range assumes its model is right, so it is often too narrow; the backtest
+    shows how far off the forecasts really were on recent quarters.
+    """
+    q = float(np.quantile(abs_errors, coverage))
+    fc = forecast.copy()
+    fc["prophet_lower"], fc["prophet_upper"] = fc["yhat_lower"], fc["yhat_upper"]
+    backtest_lower, backtest_upper = fc["yhat"] * (1 - q), fc["yhat"] * (1 + q)
+    fc["yhat_lower"] = np.minimum(fc["prophet_lower"], backtest_lower)
+    fc["yhat_upper"] = np.maximum(fc["prophet_upper"], backtest_upper)
+    # Which method set the range for each quarter (the wider one)
+    backtest_wider = (backtest_upper - backtest_lower) > (fc["prophet_upper"] - fc["prophet_lower"])
+    fc["range_source"] = np.where(backtest_wider, "backtest errors", "Prophet")
+    return fc, q
 
 
 def forecast_revenue(cik: int, quarters: int = 2) -> dict:
