@@ -6,7 +6,7 @@ Agent that answers questions about US public-company financials: numbers via tex
 I am a beginner. After every change, explain in 3–5 simple sentences what you built and why. Add short comments in code.
 
 ## Stack
-Python 3.11, pandas, DuckDB, Vanna 2.x, ChromaDB, sentence-transformers, LangGraph, Streamlit, scikit-learn, Prophet, pytest.
+Python 3.11, pandas, DuckDB, Vanna 2.x, ChromaDB, sentence-transformers, Streamlit, scikit-learn, Prophet, pytest.
 
 ## Folder layout
 data/bronze, data/silver, data/gold, data/docs (PDFs), src/ingest, src/sql_agent, src/rag, src/ml, src/agent, app/, tests/, eval/

@@ -7,18 +7,12 @@ ask Gemini to answer ONLY from those chunks -> return answer + where it came fro
 
 Run:  python -m src.rag.ask "What risks does Apple mention about supply chains?" AAPL
 """
-import os
 import re
-from pathlib import Path
 
-from dotenv import load_dotenv
-from google import genai
 from sentence_transformers import SentenceTransformer
 
+from src import llm
 from src.rag.ingest import EMBED_MODEL, get_collection
-
-ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(ROOT / ".env")
 
 NOT_FOUND = "Not found in the documents."
 TOP_K = 5
@@ -63,13 +57,10 @@ def ask_docs(question: str, company: str | None = None) -> dict:
     context = "\n\n".join(
         f"[{i}] ({m['filename']}, {_where(m)})\n{d}" for i, (d, m) in enumerate(zip(docs, metas), 1))
 
-    client = genai.Client(api_key=os.environ["LLM_API_KEY"])
-    response = client.models.generate_content(
-        model=os.getenv("LLM_MODEL", "gemini-3.8-flash"),
-        contents=PROMPT.format(not_found=NOT_FOUND, context=context, question=question),
-        config={"temperature": 0.0},
-    )
-    answer = (response.text or "").strip()
+    # Shared client: cached, and falls back to another model if one is over its limit
+    answer = llm.generate(PROMPT.format(not_found=NOT_FOUND, context=context, question=question))
+    if answer in (llm.LIMIT_MESSAGE, llm.UNAVAILABLE_MESSAGE):
+        return {"answer": answer, "citations": []}  # no LLM answer -> nothing to cite
 
     if NOT_FOUND.rstrip(".").lower() in answer.lower():
         return {"answer": NOT_FOUND, "citations": []}

@@ -99,4 +99,30 @@ The top flagged anomalies for our 10 companies were traced back to the original 
 - **Apple net income, fiscal Q4 2025 (Sep 2025): $27.47B, +86% vs $14.74B.** $112.01B (same 10-K) − $84.54B (Q1–Q3). The jump is mostly the year-ago quarter being lowered by that one-time tax charge.
 - **Nike net income, fiscal Q4 2026 (May 2026): $1.07B, +407% vs $0.21B a year earlier.** $3.108B (10-K 0000320187-26-000088) − $2.039B (Q1–Q3). The year-ago Q4 was very weak: $3.219B annual − $3.008B Q1–Q3 = $0.211B.
 
-Note: the Gemini free tier allows about 20 requests per day per model. If you hit the limit, set a different `LLM_MODEL` in `.env` (e.g. `gemini-3.5-flash`).
+## How to run Phase 5 (agent + chat app)
+
+Designed for the Gemini free tier: at most 2 LLM calls per question, cached answers cost 0.
+
+1. In `.env`, list the models to try in order (optional, this is the default):
+   ```
+   LLM_MODELS=gemini-3.8-flash,gemini-3.5-flash
+   ```
+2. Start the chat app (opens http://localhost:8501):
+   ```
+   streamlit run app/streamlit_app.py
+   ```
+   Or ask from the terminal:
+   ```
+   python -m src.agent.agent "Forecast Walmart's revenue for the next 2 quarters"
+   ```
+3. Run the tests (no Gemini calls):
+   ```
+   pytest tests/test_agent.py tests/test_llm.py
+   ```
+
+- `src/llm.py` - shared LLM client for every tool: SQLite cache (`data/llm_cache.db`, keyed by model + prompt), model fallback on 429, "Daily free limit reached, try again tomorrow" when all models are exhausted, LLM call counting (max 2 per question).
+- `src/agent/router.py` - picks the route without the LLM: keyword rules, then similarity to example questions (local embedding model). Routes: sql, docs, sql+docs ("why" questions about numbers), forecast, anomaly.
+- `src/agent/agent.py` - `answer(question)` runs only the needed tools and builds the answer from a template (no extra LLM call). Forecast and anomaly use 0 LLM calls.
+- `app/streamlit_app.py` - chat UI with answer, SQL, table, time chart, citations and "LLM calls used".
+
+Note: the Gemini free tier allows about 20 requests per day per model. `src/llm.py` automatically moves to the next model in `LLM_MODELS` when one is over its limit.
