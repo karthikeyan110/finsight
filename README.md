@@ -93,4 +93,10 @@ The top flagged anomalies for our 10 companies were traced back to the original 
 - **Walmart operating income, fiscal Q3 2024 (Oct 2023): $2.69B → $6.20B.** Filing 0000104169-23-000132 (10-Q, filed 2023-11-30). The year-ago quarter was unusually low; Q1+Q2+Q3 equals the reported 9-month total ($19.758B).
 - **Amazon total assets, Jun 2026: $682B → $1.10T.** Filing 0001018724-26-000026 (10-Q, filed 2026-07-31). Steady quarterly growth ($818B → $917B → $1,096B); main drivers are other non-current assets (+$162B since Dec 2025), property and equipment (+$89B) and long-term debt (+$63B).
 
+**Derived Q4 values** (Q4 = annual from the 10-K − Q1−Q2−Q3 from the 10-Qs) were checked the same way. In every case Q1+Q2+Q3 equals the 9-month total reported in the Q3 10-Q, so the derived Q4 is exactly what the company's own figures imply:
+
+- **Apple net income, fiscal Q4 2024 (Sep 2024): $14.74B, −36% vs $22.96B a year earlier.** $93.74B (10-K 0000320193-25-000079) − $79.00B (Q1–Q3). Apple's 10-K (Note 8, Income Taxes) states that in Q4 2024 it "recorded a one-time income tax charge of $10.2 billion" after the EU State Aid ruling.
+- **Apple net income, fiscal Q4 2025 (Sep 2025): $27.47B, +86% vs $14.74B.** $112.01B (same 10-K) − $84.54B (Q1–Q3). The jump is mostly the year-ago quarter being lowered by that one-time tax charge.
+- **Nike net income, fiscal Q4 2026 (May 2026): $1.07B, +407% vs $0.21B a year earlier.** $3.108B (10-K 0000320187-26-000088) − $2.039B (Q1–Q3). The year-ago Q4 was very weak: $3.219B annual − $3.008B Q1–Q3 = $0.211B.
+
 Note: the Gemini free tier allows about 20 requests per day per model. If you hit the limit, set a different `LLM_MODEL` in `.env` (e.g. `gemini-3.5-flash`).
