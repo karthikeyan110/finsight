@@ -21,15 +21,20 @@ EXAMPLES_PATH = Path(__file__).with_name("training_examples.json")
 # Plain-English meaning of words people use in questions
 GLOSSARY = [
     "Money values in fact_financials.value are in US dollars (not thousands or millions).",
-    "revenue / sales = metric 'Revenues'.",
+    "revenue / sales = metric 'Revenue' (always use metric = 'Revenue' for revenue questions; "
+    "source_tag shows which original XBRL tag it came from).",
+    "is_derived = true marks a fiscal Q4 value (Revenue, NetIncomeLoss or OperatingIncomeLoss) "
+    "computed as annual minus Q1+Q2+Q3 (the company did not report Q4 on its own).",
     "profit / net income / earnings = metric 'NetIncomeLoss' (negative value = net loss).",
     "operating income / operating profit = metric 'OperatingIncomeLoss'.",
     "total assets = metric 'Assets'. total liabilities / debts = metric 'Liabilities'.",
     "cash = metric 'CashAndCashEquivalentsAtCarryingValue'.",
     "equity = Assets minus Liabilities for the same cik and period_end.",
-    "margin = income metric divided by 'Revenues' for the same cik and period_end.",
-    "Income metrics (Revenues, NetIncomeLoss, OperatingIncomeLoss) cover 3 months for a quarterly (10-Q) "
-    "period and 12 months for an annual (10-K) period. Assets, Liabilities and cash are the balance on period_end.",
+    "margin = income metric divided by 'Revenue' for the same cik and period_end.",
+    "quarterly values use qtrs=1, annual values use qtrs=4",
+    "fact_financials.qtrs = number of quarters a value covers: 0 = balance on period_end (Assets, Liabilities, cash), "
+    "1 = one quarter (3 months), 4 = full year. Always filter income metrics (Revenue, NetIncomeLoss, "
+    "OperatingIncomeLoss) on qtrs, and never add qtrs=1 and qtrs=4 values together.",
     "dim_date.quarter and dim_date.year are the CALENDAR quarter/year of period_end. A company's fiscal quarter "
     "can differ (e.g. Apple's fiscal year ends in September, so period_end 2025-09-30 is Apple's fiscal Q4 / full year).",
     "'latest' means the row with the highest period_end for that company.",

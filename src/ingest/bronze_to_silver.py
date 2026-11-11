@@ -1,11 +1,14 @@
 """Bronze -> Silver: clean the raw SEC EDGAR Financial Statement Data Sets.
 
-Reads sub.txt (one row per filing) and num.txt (one row per reported number),
-keeps only 10-K / 10-Q filings and USD values, removes duplicates, parses dates,
-and writes Parquet files to data/silver/.
+For every quarter folder data/bronze/YYYYqN/ it reads sub.txt (one row per filing)
+and num.txt (one row per reported number), keeps only 10-K / 10-Q filings and USD
+values, removes duplicates, parses dates, and writes one Parquet file per quarter:
+  data/silver/sub/YYYYqN.parquet
+  data/silver/num/YYYYqN.parquet
 
 Run:  python src/ingest/bronze_to_silver.py
 """
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -25,9 +28,15 @@ NUM_COLS = ["adsh", "tag", "version", "ddate", "qtrs", "uom",
             "segments", "coreg", "value"]
 
 
-def load_sub() -> pd.DataFrame:
+def quarter_folders() -> list[Path]:
+    """All folders named like 2025q4 inside data/bronze/, oldest first."""
+    return sorted(p for p in BRONZE.iterdir()
+                  if p.is_dir() and re.fullmatch(r"\d{4}q[1-4]", p.name))
+
+
+def load_sub(folder: Path) -> pd.DataFrame:
     """Load filings, keep 10-K/10-Q, parse dates."""
-    sub = pd.read_csv(BRONZE / "sub.txt", sep="\t", usecols=SUB_COLS,
+    sub = pd.read_csv(folder / "sub.txt", sep="\t", usecols=SUB_COLS,
                       dtype={"adsh": str, "cik": "int64", "sic": "Int64",
                              "form": str, "fp": str, "fy": "Int64"})
     sub = sub[sub["form"].isin(KEEP_FORMS)]
@@ -40,10 +49,10 @@ def load_sub() -> pd.DataFrame:
     return sub.reset_index(drop=True)
 
 
-def load_num(keep_adsh: set) -> pd.DataFrame:
+def load_num(folder: Path, keep_adsh: set) -> pd.DataFrame:
     """Load numbers in chunks (the file is large), keep USD rows for kept filings."""
     parts = []
-    reader = pd.read_csv(BRONZE / "num.txt", sep="\t", usecols=NUM_COLS,
+    reader = pd.read_csv(folder / "num.txt", sep="\t", usecols=NUM_COLS,
                          dtype={"adsh": str, "tag": str, "version": str,
                                 "ddate": str, "qtrs": "Int64", "uom": str,
                                 "segments": str, "coreg": str, "value": "float64"},
@@ -60,17 +69,15 @@ def load_num(keep_adsh: set) -> pd.DataFrame:
 
 
 def main() -> None:
-    SILVER.mkdir(parents=True, exist_ok=True)
+    (SILVER / "sub").mkdir(parents=True, exist_ok=True)
+    (SILVER / "num").mkdir(parents=True, exist_ok=True)
 
-    sub = load_sub()
-    print(f"sub: {len(sub):,} 10-K/10-Q filings")
-
-    num = load_num(set(sub["adsh"]))
-    print(f"num: {len(num):,} USD values")
-
-    sub.to_parquet(SILVER / "sub.parquet", index=False)
-    num.to_parquet(SILVER / "num.parquet", index=False)
-    print(f"Saved Parquet files to {SILVER}")
+    for folder in quarter_folders():
+        sub = load_sub(folder)
+        num = load_num(folder, set(sub["adsh"]))
+        sub.to_parquet(SILVER / "sub" / f"{folder.name}.parquet", index=False)
+        num.to_parquet(SILVER / "num" / f"{folder.name}.parquet", index=False)
+        print(f"{folder.name}: {len(sub):,} filings, {len(num):,} USD values")
 
 
 if __name__ == "__main__":

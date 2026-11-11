@@ -4,7 +4,10 @@
 
 Phase 1 turns the raw SEC EDGAR Financial Statement Data Sets into a small DuckDB star schema.
 
-1. Put the SEC files (`sub.txt`, `num.txt`, `tag.txt`, `pre.txt`) in `data/bronze/`.
+1. Download the last 12 quarters of SEC files into `data/bronze/YYYYqN/` (already-downloaded quarters are skipped):
+   ```
+   python -m src.ingest.download_fsds
+   ```
 2. Install the packages:
    ```
    pip install -r requirements.txt
@@ -25,7 +28,11 @@ Phase 1 turns the raw SEC EDGAR Financial Statement Data Sets into a small DuckD
 Gold tables:
 - `dim_company` (cik, name, sector, country)
 - `dim_date` (period_end, quarter, year)
-- `fact_financials` (cik, period_end, metric, value). Income metrics are quarterly for 10-Q filings and full-year for 10-K filings. Balance-sheet metrics are the value on period_end.
+- `fact_financials` (cik, period_end, metric, qtrs, value, source_tag, is_derived).
+  `qtrs` = 0 (balance on period_end), 1 (one quarter) or 4 (full year).
+  All revenue tags are mapped to metric `Revenue` (original tag in `source_tag`).
+  Missing fiscal Q4 values of Revenue, NetIncomeLoss and OperatingIncomeLoss are derived as
+  annual − (Q1+Q2+Q3) and marked `is_derived = true`.
 
 ## How to run Phase 2 (text-to-SQL)
 
@@ -61,5 +68,29 @@ Gold tables:
    ```
    pytest tests/test_rag.py
    ```
+
+## How to run Phase 4 (forecasting + anomaly detection)
+
+No LLM calls in this phase.
+
+1. Print the report (also saved to `eval/ml_results.md`):
+   ```
+   python -m eval.ml_report
+   ```
+2. Run the tests:
+   ```
+   pytest tests/test_ml.py
+   ```
+
+- `src/ml/forecast.py` - `forecast_revenue(cik, quarters=2)`: Prophet vs naive vs seasonal-naive, backtested on the last 4 quarters (MAPE).
+- `src/ml/anomaly.py` - `find_anomalies(cik=None)`: year-over-year % change judged against the company's own history (robust z-score). Flagged when |z| > 4 AND at least 15 percentage points from its usual change. Isolation Forest per size bucket is shown as information only. Negative derived Q4 *revenue* is listed separately as "possible restatement" (a negative derived Q4 net/operating income can be a real loss, so it is not).
+
+### Anomaly verification
+
+The top flagged anomalies for our 10 companies were traced back to the original SEC filings (Silver/Bronze data): period length (`qtrs`), XBRL tag, and the filing they came from (adsh, form, filed date). All checked values were found to be **real business events, not data errors**: they come from the company's own 10-Q, use standard `us-gaap` tags with the right period length, the quarters add up to the reported year-to-date totals, and the year-ago values were repeated unchanged in later filings. Examples:
+
+- **Alphabet net income, Q2 2026: $28.20B → $112.19B.** Filing 0001652044-26-000071 (10-Q, filed 2026-07-23). The jump comes from non-operating income ($97.98B vs $2.66B a year earlier); operating profit grew normally. Q1 + Q2 equals the reported 6-month total ($174.77B).
+- **Walmart operating income, fiscal Q3 2024 (Oct 2023): $2.69B → $6.20B.** Filing 0000104169-23-000132 (10-Q, filed 2023-11-30). The year-ago quarter was unusually low; Q1+Q2+Q3 equals the reported 9-month total ($19.758B).
+- **Amazon total assets, Jun 2026: $682B → $1.10T.** Filing 0001018724-26-000026 (10-Q, filed 2026-07-31). Steady quarterly growth ($818B → $917B → $1,096B); main drivers are other non-current assets (+$162B since Dec 2025), property and equipment (+$89B) and long-term debt (+$63B).
 
 Note: the Gemini free tier allows about 20 requests per day per model. If you hit the limit, set a different `LLM_MODEL` in `.env` (e.g. `gemini-3.5-flash`).
