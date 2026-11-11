@@ -23,6 +23,20 @@ def test_table_exists_and_has_rows(con, table):
     assert count > 0
 
 
+def test_amazon_one_annual_revenue_per_fiscal_year(con):
+    # Amazon's 10-Qs also report trailing-twelve-month totals (qtrs=4) at every
+    # quarter-end; Gold must keep only the real fiscal-year values (December).
+    rows = con.execute("""
+        SELECT YEAR(period_end) AS fy, COUNT(*) AS n, MIN(MONTH(period_end)) AS month
+        FROM fact_financials
+        WHERE cik = 1018724 AND metric = 'Revenue' AND qtrs = 4
+        GROUP BY fy
+    """).fetchall()
+    assert rows, "no annual revenue for Amazon"
+    assert all(n == 1 for _, n, _ in rows)          # exactly one per fiscal year
+    assert all(month == 12 for _, _, month in rows)  # Amazon's fiscal year ends in December
+
+
 def test_fact_has_no_nulls(con):
     nulls = con.execute("""
         SELECT COUNT(*) FROM fact_financials

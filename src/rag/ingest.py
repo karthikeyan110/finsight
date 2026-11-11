@@ -75,6 +75,12 @@ def read_pdf(path: Path) -> list[tuple[str, dict]]:
             for i, page in enumerate(reader.pages, start=1)]
 
 
+def fiscal_year_from_name(filename: str) -> int:
+    """'NVDA_10K_2024.htm' -> 2024 (the fiscal year the 10-K reports on). 0 if unknown."""
+    m = re.search(r"_(\d{4})\.\w+$", filename)
+    return int(m.group(1)) if m else 0
+
+
 def lookup_cik(ticker: str) -> int:
     """Find the company's cik and confirm it exists in dim_company.
 
@@ -107,7 +113,8 @@ def ingest() -> dict[str, int]:
     files = sorted(p for p in DOCS.iterdir() if p.suffix.lower() in (".htm", ".html", ".pdf"))
     for path in files:
         ticker = path.name.split("_")[0].upper()  # text before the first underscore
-        base = {"ticker": ticker, "cik": lookup_cik(ticker), "filename": path.name}
+        base = {"ticker": ticker, "cik": lookup_cik(ticker), "filename": path.name,
+                "fiscal_year": fiscal_year_from_name(path.name)}
         pieces = read_pdf(path) if path.suffix.lower() == ".pdf" else read_html(path)
 
         texts, metas = [], []

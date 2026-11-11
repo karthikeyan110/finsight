@@ -41,12 +41,27 @@ def time_chart(df: pd.DataFrame):
         return None
     t, y = time_cols[0], num_cols[0]
     data = df.assign(**{t: pd.to_datetime(df[t])}).sort_values(t)
+    title = y
+    # Quarterly (qtrs=1) and full-year (qtrs=4) values on one line create fake spikes,
+    # because a year's total sits on the same date as its Q4. Chart quarters only;
+    # the annual totals stay visible in the table.
+    if "qtrs" in data.columns and data["qtrs"].nunique() > 1 and (data["qtrs"] == 1).any():
+        data = data[data["qtrs"] == 1]
+        title = f"{y} (quarterly values; annual totals are in the table)"
     fig = go.Figure()
     groups = data.groupby("name") if "name" in data.columns and data["name"].nunique() > 1 else [(y, data)]
     for label, part in groups:  # one line per company if there are several
         fig.add_trace(go.Scatter(x=part[t], y=part[y], mode="lines+markers", name=str(label)))
-    fig.update_layout(height=340, margin=dict(l=10, r=10, t=40, b=10), title=y)
+    fig.update_layout(height=340, margin=dict(l=10, r=10, t=40, b=10), title=title)
     return fig
+
+
+def readable(df: pd.DataFrame) -> pd.DataFrame:
+    """Show date-time columns as plain dates (no '00:00:00')."""
+    df = df.copy()
+    for col in df.select_dtypes(include=["datetime", "datetimetz"]).columns:
+        df[col] = df[col].dt.date
+    return df
 
 
 def forecast_chart(result: dict, ticker: str):
@@ -73,15 +88,20 @@ def show(out: dict):
         fig = time_chart(out["table"])
         if fig is not None:
             st.plotly_chart(fig, use_container_width=True)
-        st.dataframe(out["table"], use_container_width=True, hide_index=True)
+        st.dataframe(readable(out["table"]), use_container_width=True, hide_index=True)
     if out.get("sql"):
         with st.expander("SQL used"):
             st.code(out["sql"], language="sql")
     if out.get("forecast"):
         st.plotly_chart(forecast_chart(out["forecast"], out["ticker"]), use_container_width=True)
     if out.get("anomalies") is not None and not out["anomalies"].empty:
-        cols = ["name", "metric", "period_end", "pct_change", "z_score", "category"]
-        st.dataframe(out["anomalies"][cols], use_container_width=True, hide_index=True)
+        a = readable(out["anomalies"][["name", "metric", "period_end", "pct_change",
+                                       "z_score", "category"]])
+        # 1.3013 -> "+130%", z 24.723 -> "+24.7" (easier to read)
+        a["pct_change"] = a["pct_change"].map(lambda x: "" if pd.isna(x) else f"{x * 100:+,.0f}%")
+        a["z_score"] = a["z_score"].map(lambda x: "" if pd.isna(x) else f"{x:+.1f}")
+        st.dataframe(a.rename(columns={"pct_change": "YoY change"}),
+                     use_container_width=True, hide_index=True)
 
     route = "+".join(out["routes"]) + (f" · {out['ticker']}" if out.get("ticker") else "")
     st.caption(f"Route: {route} ({out['route_method']}) · LLM calls used: {out['llm_calls']}")

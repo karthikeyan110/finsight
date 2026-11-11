@@ -21,6 +21,15 @@ from src.agent.router import route as pick_route
 
 log = logging.getLogger(__name__)
 
+REFUSE_MESSAGE = "FinSight is read-only — I can only answer questions about the data, not change it."
+COMPANY_NAMES = ("Apple (AAPL), Microsoft (MSFT), Amazon (AMZN), Alphabet/Google (GOOGL), "
+                 "Nvidia (NVDA), Tesla (TSLA), Coca-Cola (KO), Walmart (WMT), "
+                 "JPMorgan (JPM) and Nike (NKE)")
+OUT_OF_SCOPE_MESSAGE = (
+    f"I can answer questions about the financials and 10-K filings of: {COMPANY_NAMES}. "
+    "Try e.g. \"What was Microsoft's quarterly revenue over the last 2 years?\" or "
+    "\"What risks does Tesla mention about competition?\"")
+
 
 def _money(x: float) -> str:
     """$1.23B style (formatting done by Python, not the LLM)."""
@@ -129,6 +138,13 @@ def answer(question: str) -> dict:
            "route_method": r.method, "similar_to": r.similar_to,
            "sql": None, "table": None, "docs": None, "forecast": None,
            "anomalies": None, "errors": list(r.notes)}
+
+    # Refused / off-topic questions: fixed reply, no tools, 0 LLM calls
+    if r.routes in (["refuse"], ["out_of_scope"]):
+        out["answer"] = REFUSE_MESSAGE if r.routes == ["refuse"] else OUT_OF_SCOPE_MESSAGE
+        out["llm_calls"] = 0
+        log.info("Question %r: route=%s, LLM calls used=0", question, r.routes[0])
+        return out
 
     if "sql" in r.routes:
         _run_sql(question, out)

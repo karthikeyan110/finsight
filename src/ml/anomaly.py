@@ -125,9 +125,11 @@ def _reason(r) -> str:
     """Plain-English explanation of one flagged change."""
     direction = "rose" if r["pct_change"] > 0 else "fell"
     typical = round(r["typical_change"] * 100)  # round first so we never print "-0%"
-    second = ("Similar-size companies rarely see a change like this either."
+    company = str(r["name"]).title()  # "WALMART INC." -> "Walmart Inc."
+    second = (f"It is unusual both for {company} itself and compared with similar-size companies."
               if r["if_agrees"] else
-              "For similar-size companies a change like this is not unusual.")
+              f"Compared with similar-size companies this change is common, "
+              f"but it is unusual for {company} itself.")
     return (f"{PLAIN_NAMES.get(r['metric'], r['metric'])} {direction} "
             f"{abs(r['pct_change']) * 100:,.0f}% vs the same quarter last year "
             f"({_money(r['prev_value'])} -> {_money(r['value'])}). "

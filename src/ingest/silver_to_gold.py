@@ -166,6 +166,11 @@ def main() -> None:
           AND n.version LIKE 'us-gaap%'
           AND n.segments IS NULL AND n.coreg IS NULL
           AND n.qtrs IN (0, 1, 4)
+          -- Full-year values (qtrs=4) only from 10-Ks, ending on the filing's fiscal-year
+          -- end (same month; the 10-K's prior-year comparison columns qualify too).
+          -- Many 10-Qs also report trailing-twelve-month totals as qtrs=4 at every
+          -- quarter-end (e.g. Amazon); those are NOT fiscal years, so they are dropped.
+          AND (n.qtrs <> 4 OR (s.form = '10-K' AND MONTH(n.ddate) = MONTH(s.period)))
           AND n.ddate IS NOT NULL AND n.value IS NOT NULL
         QUALIFY ROW_NUMBER() OVER (
             PARTITION BY s.cik, n.ddate, metric, n.qtrs

@@ -98,5 +98,21 @@
   {
     "question": "Which 5 retail companies made the most profit?",
     "sql": "SELECT c.name, f.period_end, f.value AS net_income FROM fact_financials f JOIN dim_company c ON f.cik = c.cik WHERE c.sector = 'Retail Trade' AND f.metric = 'NetIncomeLoss' ORDER BY f.value DESC LIMIT 5"
+  },
+  {
+    "question": "Why did Microsoft's revenue grow so much in 2025?",
+    "sql": "SELECT c.name, f.period_end, f.value AS quarterly_revenue FROM fact_financials f JOIN dim_company c ON f.cik = c.cik WHERE c.name ILIKE '%microsoft%' AND f.metric = 'Revenue' AND f.qtrs = 1 AND YEAR(f.period_end) IN (2024, 2025) ORDER BY f.period_end"
+  },
+  {
+    "question": "Why did Walmart's operating income fall in 2023?",
+    "sql": "SELECT c.name, f.period_end, f.value AS quarterly_operating_income FROM fact_financials f JOIN dim_company c ON f.cik = c.cik WHERE c.name ILIKE '%walmart%' AND f.metric = 'OperatingIncomeLoss' AND f.qtrs = 1 AND YEAR(f.period_end) IN (2022, 2023) ORDER BY f.period_end"
+  },
+  {
+    "question": "How much did Amazon's net income change in 2024 compared with 2023?",
+    "sql": "SELECT c.name, YEAR(f.period_end) AS calendar_year, SUM(f.value) AS net_income, COUNT(*) AS quarters_included FROM fact_financials f JOIN dim_company c ON f.cik = c.cik WHERE c.name ILIKE '%amazon com%' AND f.metric = 'NetIncomeLoss' AND f.qtrs = 1 AND YEAR(f.period_end) IN (2023, 2024) GROUP BY c.name, calendar_year ORDER BY calendar_year"
+  },
+  {
+    "question": "Show Tesla's quarterly revenue in 2024",
+    "sql": "SELECT c.name, f.period_end, f.value AS quarterly_revenue, f.is_derived FROM fact_financials f JOIN dim_company c ON f.cik = c.cik WHERE c.name ILIKE '%tesla%' AND f.metric = 'Revenue' AND f.qtrs = 1 AND YEAR(f.period_end) = 2024 ORDER BY f.period_end"
   }
 ]

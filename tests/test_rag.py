@@ -22,6 +22,33 @@ def test_every_file_has_chunks(filename):
     assert meta["ticker"] == filename.split("_")[0]
     assert meta["cik"] > 0  # found in dim_company
     assert "section" in meta or "page" in meta
+    assert meta["fiscal_year"] == int(filename.split("_")[-1][:4])  # from the filename
+
+
+def test_years_in_question():
+    from src.rag.ask import years_in_question
+    # a 10-K describes its own year, and the next year's 10-K compares against it
+    assert years_in_question("Why did Nvidia's revenue grow so much in 2023?") == [2023, 2024]
+    assert years_in_question("Compare 2023 and 2025") == [2023, 2024, 2025, 2026]
+    assert years_in_question("What risks does Tesla mention?") == []
+
+
+def test_filter_by_company_and_year():
+    from src.rag.ask import _filter
+    assert _filter(None, []) is None
+    assert _filter("nvda", []) == {"ticker": "NVDA"}
+    assert _filter("NVDA", [2023, 2024]) == {
+        "$and": [{"ticker": "NVDA"}, {"fiscal_year": {"$in": [2023, 2024]}}]}
+
+
+def test_year_filter_returns_only_those_10ks():
+    # Retrieval only (no LLM): Nvidia + "2023" must search NVDA's 2023/2024 10-Ks only
+    from src.rag.ask import _embed, _filter
+    hits = get_collection().query(
+        query_embeddings=[_embed("Why did Nvidia's revenue grow in 2023?")], n_results=5,
+        where=_filter("NVDA", [2023, 2024]))
+    files = {m["filename"] for m in hits["metadatas"][0]}
+    assert files and files <= {"NVDA_10K_2023.htm", "NVDA_10K_2024.htm"}
 
 
 def test_off_topic_question_not_found():

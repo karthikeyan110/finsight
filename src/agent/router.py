@@ -6,12 +6,16 @@ Routes:
   ["sql", "docs"]  "why" questions about numbers: the numbers AND the explanation
   ["forecast"]     revenue forecast for one of our 10 companies
   ["anomaly"]      unusual changes
+  ["refuse"]       requests to change data (FinSight is read-only)
+  ["out_of_scope"] questions that have nothing to do with company financials
 
 How:
+  0. Requests to change data (delete, drop, update, ...) are refused first.
   1. Keyword rules for clear cases (e.g. "forecast", "unusual", "why ... profit").
   2. If the keywords are unclear, compare the question with example questions
      (local sentence-transformers model, all-MiniLM-L6-v2) and use the route of
-     the most similar example.
+     the most similar example - unless even the best match is weak
+     (score < OUT_OF_SCOPE_THRESHOLD) and no company is named: then it's out of scope.
 """
 import re
 from dataclasses import dataclass, field
@@ -85,6 +89,22 @@ EXAMPLES = {
 WORD_NUMBERS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
                 "seven": 7, "eight": 8}
 
+# ---- refuse: requests to change data ----
+# A write verb counts if the question STARTS with it ("drop table ...") or also
+# mentions data/tables ("please delete all data ..."). So a normal question like
+# "Did Apple remove any products?" is not refused.
+WRITE_VERBS = r"(delete|drop|update|insert|truncate|alter|remove|modify|overwrite|replace|" \
+              r"wipe|erase|rename|grant|revoke|merge|upsert|create\s+table|create\s+view)"
+DATA_WORDS = r"(data|database|table|tables|row|rows|record|records|column|columns|value|" \
+             r"values|fact_\w+|dim_\w+|schema|everything)"
+
+# ---- out of scope ----
+# Chosen from measured scores (see tests/test_agent.py): off-topic questions such as
+# "What is the capital of France?" or "Explain quantum physics" scored at most 0.25
+# against our examples; in-scope questions that reach the similarity step scored at
+# least 0.40 ("Show me retailers"). 0.32 sits roughly halfway, leaving a margin.
+OUT_OF_SCOPE_THRESHOLD = 0.32
+
 
 @dataclass
 class Route:
@@ -121,6 +141,14 @@ def find_quarters(question: str, default: int = 2) -> int:
         return default
     word = m.group(1)
     return int(word) if word.isdigit() else WORD_NUMBERS.get(word, default)
+
+
+def wants_to_change_data(question: str) -> bool:
+    """True for requests like 'Delete all data from fact_financials' or 'drop table dim_company'."""
+    low = question.lower().strip()
+    if re.match(rf"^(please\s+|can you\s+|could you\s+)?{WRITE_VERBS}\b", low):
+        return True
+    return bool(re.search(rf"\b{WRITE_VERBS}\b", low) and re.search(rf"\b{DATA_WORDS}\b", low))
 
 
 def keyword_route(question: str) -> list[str] | None:
@@ -176,10 +204,18 @@ def route(question: str) -> Route:
     result = Route(routes=[], ticker=ticker, cik=COMPANIES.get(ticker),
                    quarters=find_quarters(question))
 
+    # 0. Never change data - checked before anything else
+    if wants_to_change_data(question):
+        result.routes = ["refuse"]
+        return result
+
     routes = keyword_route(question)
     if routes is None:
         routes, result.similar_to, result.score = similarity_route(question)
         result.method = "similarity"
+        # Weak match + no company named -> not a question FinSight can answer
+        if result.score < OUT_OF_SCOPE_THRESHOLD and ticker is None:
+            routes = ["out_of_scope"]
     result.routes = routes
 
     if routes == ["forecast"] and ticker is None:

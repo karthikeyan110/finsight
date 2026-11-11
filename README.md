@@ -52,15 +52,15 @@ Gold tables:
 
 ## How to run Phase 3 (document RAG)
 
-1. Download the latest 10-K for each company into `data/docs/`:
+1. Download the 3 latest 10-Ks (latest + two previous fiscal years) for each company into `data/docs/` (existing files are skipped):
    ```
    python -m src.rag.download_10k
    ```
-2. Split, embed and store the documents in ChromaDB (`data/chroma_docs/`, takes ~6 minutes):
+2. Split, embed and store the documents in ChromaDB (`data/chroma_docs/`, takes ~15-20 minutes for 30 files). Each chunk gets ticker, cik, filename, fiscal_year and section metadata:
    ```
    python -m src.rag.ingest
    ```
-3. Ask a question (the ticker at the end is optional):
+3. Ask a question (the ticker at the end is optional). If the question mentions a year, e.g. "in 2023", only that year's 10-K and the next one are searched (a 10-K also describes the previous year):
    ```
    python -m src.rag.ask "What risks does Apple mention about supply chains?" AAPL
    ```
