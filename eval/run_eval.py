@@ -4,8 +4,11 @@ Part 1 - routing accuracy for all questions (router only, 0 LLM calls).
           Saved to eval/routing.json.
 Part 2 - full answers via src.agent.agent.answer(), one question at a time:
           latency, LLM calls, the answer and a score (eval/scoring.py).
-          Each result is appended to eval/results.jsonl as soon as it finishes.
-          On a re-run, questions already in results.jsonl are skipped.
+          Each result is saved to eval/results.jsonl as soon as it finishes, with a
+          status: "pass", "fail" (a real wrong answer) or "error" (network/timeout:
+          the agent never got to answer). Network errors are retried up to 2 times.
+          On a re-run, passed and failed questions are skipped; "error" ones run again
+          and their old line is replaced.
           Stops cleanly when the Gemini daily limit is reached and says how many remain.
           Questions that need no LLM (forecast/anomaly, refuse/out_of_scope) run first.
 
@@ -21,7 +24,7 @@ from pathlib import Path
 from src import llm
 from src.agent.agent import answer
 from src.agent.router import route
-from eval.scoring import score
+from eval.scoring import is_network_error, score, status_of
 
 HERE = Path(__file__).parent
 QUESTIONS = HERE / "questions.json"
@@ -31,6 +34,7 @@ RESULTS = HERE / "results.jsonl"
 # Questions with 0 expected LLM calls first, so they always finish
 ORDER = ["refuse/out_of_scope", "forecast/anomaly", "sql", "docs", "sql+docs"]
 MAX_UNAVAILABLE_IN_A_ROW = 3  # model overloaded / network problems -> stop for now
+NETWORK_RETRIES = 2           # extra attempts for a question that hit a network/timeout error
 
 
 def load_questions() -> list[dict]:
@@ -60,10 +64,32 @@ def run_routing(questions: list[dict]) -> list[dict]:
     return rows
 
 
-def done_ids() -> set[str]:
+def load_results() -> dict[str, dict]:
+    """All saved results by question id (a later line for the same id wins)."""
     if not RESULTS.exists():
-        return set()
-    return {json.loads(line)["id"] for line in RESULTS.read_text(encoding="utf-8").splitlines() if line.strip()}
+        return {}
+    records = [json.loads(line) for line in RESULTS.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return {r["id"]: r for r in records}
+
+
+def done_ids() -> set[str]:
+    """Questions that are finished: passed or really failed. 'error' ones run again."""
+    return {i for i, r in load_results().items() if status_of(r) != "error"}
+
+
+def save_result(rec: dict) -> None:
+    """Write one result, replacing an older line for the same question (e.g. an earlier error)."""
+    results = load_results()
+    results[rec["id"]] = rec
+    RESULTS.write_text("".join(json.dumps(r) + "\n" for r in results.values()), encoding="utf-8")
+
+
+def _network_error(out: dict) -> bool:
+    """The question failed because of the network/timeouts, not because of the agent."""
+    texts = list(out.get("errors", [])) + [(out.get("docs") or {}).get("answer", "")]
+    # "Model unavailable" = every model timed out, was overloaded or lost the connection
+    # (the 60 s request timeout in src/llm.py ends up here): also not the agent's fault
+    return any(is_network_error(t) or llm.UNAVAILABLE_MESSAGE in t for t in texts)
 
 
 def _record(q: dict, out: dict, seconds: float) -> dict:
@@ -81,18 +107,13 @@ def _record(q: dict, out: dict, seconds: float) -> dict:
         "anomalies_found": None if out.get("anomalies") is None else len(out["anomalies"]),
     }
     rec["correct"], rec["reason"] = score(q, rec)
+    rec["status"] = "pass" if rec["correct"] else "fail"
     return rec
 
 
 def _hit_limit(out: dict) -> bool:
     docs_answer = (out.get("docs") or {}).get("answer")
     return llm.LIMIT_MESSAGE in out.get("errors", []) or docs_answer == llm.LIMIT_MESSAGE
-
-
-def _unavailable(out: dict) -> bool:
-    docs_answer = (out.get("docs") or {}).get("answer")
-    text = " ".join(out.get("errors", []))
-    return llm.UNAVAILABLE_MESSAGE in text or docs_answer == llm.UNAVAILABLE_MESSAGE
 
 
 def run_answers(questions: list[dict]) -> None:
@@ -103,30 +124,36 @@ def run_answers(questions: list[dict]) -> None:
     unavailable_streak = 0
 
     for n, q in enumerate(todo, 1):
-        start = time.perf_counter()
-        out = answer(q["question"])
-        seconds = time.perf_counter() - start
+        # Up to 1 + NETWORK_RETRIES attempts while the network is the problem
+        for attempt in range(1 + NETWORK_RETRIES):
+            start = time.perf_counter()
+            out = answer(q["question"])
+            seconds = time.perf_counter() - start
+            if not _network_error(out) or _hit_limit(out):
+                break
+            if attempt < NETWORK_RETRIES:
+                print(f"  {q['id']}: network error, retrying ({attempt + 1}/{NETWORK_RETRIES})")
 
         if _hit_limit(out):
             remaining = len(todo) - n + 1
             print(f"\nDaily free limit reached at {q['id']}. Stopping cleanly.")
             print(f"{remaining} question(s) remain - run again tomorrow to continue.")
             return
-        if _unavailable(out):  # temporary: don't save, try the next question
-            unavailable_streak += 1
-            print(f"  {q['id']}: model unavailable, will retry on the next run")
-            if unavailable_streak >= MAX_UNAVAILABLE_IN_A_ROW:
-                print(f"\nModels unavailable {unavailable_streak} times in a row. Stopping; "
-                      f"{len(todo) - n} more question(s) not tried yet.")
-                return
-            continue
-        unavailable_streak = 0
-
         rec = _record(q, out, seconds)
-        with RESULTS.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(rec) + "\n")
-        mark = "OK  " if rec["correct"] else "FAIL"
+        if _network_error(out):  # still a network/timeout problem after all retries
+            rec["status"] = "error"
+            rec["reason"] = (f"network/timeout error after {1 + NETWORK_RETRIES} attempts: "
+                             + "; ".join(out.get("errors", []) or [(out.get("docs") or {}).get("answer", "")])[:200])
+            unavailable_streak += 1
+        else:
+            unavailable_streak = 0
+        save_result(rec)
+        mark = {"pass": "OK  ", "fail": "FAIL", "error": "ERR "}[rec["status"]]
         print(f"  {mark} {q['id']:6} {rec['latency_s']:5.1f}s  LLM calls={rec['llm_calls']}  {rec['reason']}")
+        if unavailable_streak >= MAX_UNAVAILABLE_IN_A_ROW:  # the network is down: stop for now
+            print(f"\nNetwork/timeout errors on {unavailable_streak} questions in a row. Stopping; "
+                  f"{len(todo) - n} more question(s) not tried yet.")
+            return
 
     print(f"\nAll {len(questions)} questions answered.")
 

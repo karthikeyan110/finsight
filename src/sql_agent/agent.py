@@ -129,6 +129,13 @@ class CountingGemini(GeminiLlmService):
 
     last_error: Exception | None = None
 
+    def __init__(self, model: str, api_key: str, **kwargs):
+        super().__init__(model=model, api_key=api_key, **kwargs)
+        # Same client as Vanna's, plus a 60 s timeout per request (src/llm.py)
+        from google import genai
+        self._client = genai.Client(api_key=api_key,
+                                    http_options={"timeout": llm.REQUEST_TIMEOUT_MS})
+
     async def send_request(self, request):
         self.last_error = None
         try:

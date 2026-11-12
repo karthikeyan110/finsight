@@ -11,7 +11,31 @@ score(question, record) -> (correct: bool, reason: str)
   forecast/anomaly  right route, the tool returned a result, no errors
   refuse/oos        right route
 """
+import re
 from datetime import date, datetime
+
+# Signs of a network / timeout problem (the agent never got to answer), as opposed
+# to a real wrong answer. Such results get status "error" and are retried.
+NETWORK_PATTERNS = re.compile(
+    r"WinError 100(53|54|60)|connection (was )?(aborted|reset|refused|forcibly closed)|"
+    r"timed? ?out|timeout|RemoteProtocolError|ConnectError|ReadError|"
+    r"Name or service not known|getaddrinfo failed|NameResolutionError", re.IGNORECASE)
+
+
+def is_network_error(text: str) -> bool:
+    """True if an error message looks like a network or timeout problem."""
+    return bool(NETWORK_PATTERNS.search(text or ""))
+
+
+def status_of(record: dict) -> str:
+    """'pass', 'fail' or 'error' (network/timeout). Older records have no status field."""
+    if record.get("status"):
+        return record["status"]
+    if record.get("correct"):
+        return "pass"
+    errors = " ".join(record.get("errors") or []) + " " + record.get("reason", "")
+    return "error" if is_network_error(errors) else "fail"
+
 
 NOT_ANSWERED = ("Not found in the documents.", "Daily free limit reached, try again tomorrow.",
                 "The AI model is unavailable right now, please try again in a minute.")

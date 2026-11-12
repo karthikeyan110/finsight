@@ -29,6 +29,9 @@ DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash"]
 LIMIT_MESSAGE = "Daily free limit reached, try again tomorrow."
 UNAVAILABLE_MESSAGE = "The AI model is unavailable right now, please try again in a minute."
 MAX_CALLS = 2  # per question
+# A stuck connection fails after 60 s (and counts as a network error) instead of
+# hanging for minutes. The Gemini SDK takes the timeout in milliseconds.
+REQUEST_TIMEOUT_MS = 60_000
 
 # 429 = daily limit reached. 503 (overloaded) and 404 (model not offered to this
 # account) also move on to the next model.
@@ -140,7 +143,8 @@ def error_kind(error: Exception) -> str | None:
 def _call_model(model: str, prompt: str) -> str:
     """One Gemini request (temperature 0 = as repeatable as possible)."""
     from google import genai
-    client = genai.Client(api_key=os.environ["LLM_API_KEY"])
+    client = genai.Client(api_key=os.environ["LLM_API_KEY"],
+                          http_options={"timeout": REQUEST_TIMEOUT_MS})
     response = client.models.generate_content(model=model, contents=prompt,
                                               config={"temperature": 0.0})
     return (response.text or "").strip()
