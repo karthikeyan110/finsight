@@ -1,0 +1,196 @@
+[
+  {
+    "id": "h_sql01",
+    "category": "sql",
+    "ticker": "JNJ",
+    "question": "What was Johnson & Johnson's revenue in the quarter ending 2026-06-30?",
+    "expected_routes": [
+      "sql"
+    ],
+    "reference_sql": "SELECT value FROM fact_financials WHERE cik = 200406 AND metric = 'Revenue' AND qtrs = 1 AND period_end = '2026-06-30'",
+    "expected": {
+      "columns": [
+        "value"
+      ],
+      "rows": [
+        [
+          25310000000.0
+        ]
+      ]
+    }
+  },
+  {
+    "id": "h_sql02",
+    "category": "sql",
+    "ticker": "GM",
+    "question": "What was General Motors' net income in the quarter ending 2026-06-30?",
+    "expected_routes": [
+      "sql"
+    ],
+    "reference_sql": "SELECT value FROM fact_financials WHERE cik = 1467858 AND metric = 'NetIncomeLoss' AND qtrs = 1 AND period_end = '2026-06-30'",
+    "expected": {
+      "columns": [
+        "value"
+      ],
+      "rows": [
+        [
+          1305000000.0
+        ]
+      ]
+    }
+  },
+  {
+    "id": "h_docs01",
+    "category": "docs",
+    "ticker": "TSLA",
+    "question": "What does Tesla say about its energy generation and storage business?",
+    "expected_routes": [
+      "docs"
+    ],
+    "key_facts": [
+      [
+        "energy generation and storage"
+      ],
+      [
+        "megapack",
+        "powerwall"
+      ]
+    ],
+    "expected_filings": [
+      "TSLA_10K_2023.htm",
+      "TSLA_10K_2024.htm",
+      "TSLA_10K_2025.htm"
+    ],
+    "expected_section": "Item 1. Business"
+  },
+  {
+    "id": "h_docs02",
+    "category": "docs",
+    "ticker": "WMT",
+    "question": "How does Walmart describe the competition it faces?",
+    "expected_routes": [
+      "docs"
+    ],
+    "key_facts": [
+      [
+        "compet"
+      ],
+      [
+        "ecommerce",
+        "omni-channel",
+        "omnichannel"
+      ]
+    ],
+    "expected_filings": [
+      "WMT_10K_2024.htm",
+      "WMT_10K_2025.htm",
+      "WMT_10K_2026.htm"
+    ],
+    "expected_section": "Item 1. Business / Item 1A. Risk Factors"
+  },
+  {
+    "id": "h_docs03",
+    "category": "docs",
+    "ticker": "GOOGL",
+    "question": "What antitrust legal proceedings does Alphabet disclose?",
+    "expected_routes": [
+      "docs"
+    ],
+    "key_facts": [
+      [
+        "antitrust"
+      ],
+      [
+        "department of justice",
+        "doj"
+      ]
+    ],
+    "expected_filings": [
+      "GOOGL_10K_2023.htm",
+      "GOOGL_10K_2024.htm",
+      "GOOGL_10K_2025.htm"
+    ],
+    "expected_section": "Item 3. Legal Proceedings / Item 8, legal matters note"
+  },
+  {
+    "id": "h_docs04",
+    "category": "docs",
+    "ticker": "MSFT",
+    "question": "How does Microsoft return capital to its shareholders?",
+    "expected_routes": [
+      "docs"
+    ],
+    "key_facts": [
+      [
+        "dividend"
+      ],
+      [
+        "repurchase"
+      ]
+    ],
+    "expected_filings": [
+      "MSFT_10K_2024.htm",
+      "MSFT_10K_2025.htm",
+      "MSFT_10K_2026.htm"
+    ],
+    "expected_section": "Item 5 / Item 8, stockholders' equity note"
+  },
+  {
+    "id": "h_why01",
+    "category": "sql+docs",
+    "ticker": "KO",
+    "question": "Why did Coca-Cola's revenue grow in 2024?",
+    "expected_routes": [
+      "sql",
+      "docs"
+    ]
+  },
+  {
+    "id": "h_why02",
+    "category": "sql+docs",
+    "ticker": "GOOGL",
+    "question": "Why did Alphabet's net income rise in 2024?",
+    "expected_routes": [
+      "sql",
+      "docs"
+    ]
+  },
+  {
+    "id": "h_why03",
+    "category": "sql+docs",
+    "ticker": "AAPL",
+    "question": "Why did Apple's revenue increase in fiscal 2025?",
+    "expected_routes": [
+      "sql",
+      "docs"
+    ]
+  },
+  {
+    "id": "h_why04",
+    "category": "sql+docs",
+    "ticker": "NKE",
+    "question": "Why did Nike's net income change in fiscal 2026?",
+    "expected_routes": [
+      "sql",
+      "docs"
+    ]
+  },
+  {
+    "id": "h_ref01",
+    "category": "refuse/out_of_scope",
+    "ticker": "-",
+    "question": "Who painted the Mona Lisa?",
+    "expected_routes": [
+      "out_of_scope"
+    ]
+  },
+  {
+    "id": "h_ref02",
+    "category": "refuse/out_of_scope",
+    "ticker": "-",
+    "question": "Give me a recipe for pancakes",
+    "expected_routes": [
+      "out_of_scope"
+    ]
+  }
+]
