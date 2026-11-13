@@ -19,6 +19,9 @@ from datetime import date, datetime
 NETWORK_PATTERNS = re.compile(
     r"WinError 100(53|54|60)|connection (was )?(aborted|reset|refused|forcibly closed)|"
     r"timed? ?out|timeout|RemoteProtocolError|ConnectError|ReadError|"
+    # Our 60 s request timeout is passed on to Google's server, which then answers
+    # "504 DEADLINE_EXCEEDED ... Deadline expired": a timeout, not a wrong answer
+    r"DEADLINE_EXCEEDED|Deadline expired|\b504\b|"
     r"Name or service not known|getaddrinfo failed|NameResolutionError", re.IGNORECASE)
 
 
@@ -28,11 +31,15 @@ def is_network_error(text: str) -> bool:
 
 
 def status_of(record: dict) -> str:
-    """'pass', 'fail' or 'error' (network/timeout). Older records have no status field."""
-    if record.get("status"):
-        return record["status"]
+    """'pass', 'fail' or 'error' (network/timeout). Older records have no status field.
+
+    A saved "fail" whose errors are network/timeout messages is treated as "error",
+    so failures recorded before a message was recognised get re-run.
+    """
     if record.get("correct"):
         return "pass"
+    if record.get("reason", "").startswith("routed to"):
+        return "fail"  # a wrong route is the router's fault, whatever the network did
     errors = " ".join(record.get("errors") or []) + " " + record.get("reason", "")
     return "error" if is_network_error(errors) else "fail"
 

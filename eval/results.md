@@ -1,20 +1,20 @@
 # FinSight evaluation (2026-11-13)
 
-Questions with a result: **44/50** (42 judged, 2 network/timeout error(s), 6 not run yet).
+Questions with a result: **50/50** (50 judged, 0 network/timeout error(s), 0 not run yet).
 
 Accuracy counts only judged answers: a network or timeout error means the agent never got to answer, so it is listed separately and retried on the next run.
 
 | Metric | Result | Network errors |
 |---|---|---|
 | Routing accuracy (all questions, router only) | 44/50 (88%) | - |
-| SQL execution accuracy (of 20) | 16/18 (89%) | 2 |
-| Docs accuracy: key facts + right filing (of 12) | 6/11 (55%) | 0 |
-| SQL + docs "why" (of 8) | 1/3 (33%) | 0 |
+| SQL execution accuracy (of 20) | 18/20 (90%) | 0 |
+| Docs accuracy: key facts + right filing (of 12) | 6/12 (50%) | 0 |
+| SQL + docs "why" (of 8) | 2/8 (25%) | 0 |
 | Forecast / anomaly: route + no error (of 5) | 5/5 (100%) | 0 |
 | Refuse / out of scope: route (of 5) | 5/5 (100%) | 0 |
-| Average latency per judged question | 93.3 s | |
-| Average LLM calls per judged question | 0.83 | |
-| Judged answers with 0 LLM calls | 12/42 (29%) | |
+| Average latency per judged question | 86.2 s | |
+| Average LLM calls per judged question | 0.88 | |
+| Judged answers with 0 LLM calls | 12/50 (24%) | |
 
 Scoring: SQL = same values as the reference result (any row order / column names); docs = all key facts present and an expected 10-K cited (keyword matching, no LLM judge).
 
@@ -37,12 +37,12 @@ Scoring: SQL = same values as the reference result (any row order / column names
 - **docs08** (docs) What drove Nvidia's Data Center revenue growth in fiscal year 2024? - routed to ['sql', 'docs'], expected ['docs']
 - **why02** (sql+docs) Why did Apple's net income fall in fiscal 2024? - docs part: Not found in the documents.
 - **why03** (sql+docs) Why did Walmart's operating income jump in the quarter ending October 2023? - docs part: Not found in the documents.
+- **docs05** (docs) What are Amazon's reportable segments? - routed to ['sql', 'docs'], expected ['docs']
+- **why04** (sql+docs) Why did Microsoft's revenue grow in fiscal 2025? - docs part: Not found in the documents.
+- **why06** (sql+docs) Why did Tesla's operating income decline in 2024? - docs part: Not found in the documents.
+- **why07** (sql+docs) Why did Nike's revenue fall in fiscal 2025? - docs part: Not found in the documents.
+- **why08** (sql+docs) Why did JPMorgan's revenue rise in 2024? - docs part: Not found in the documents.
 
 ## Errors (network/timeout - not counted as failures, retried on the next run)
 
-- **sql19** (sql) What was Nike's net income for the fiscal year ending May 2026? - no SQL result: Numbers (SQL): Could not turn this question into SQL ([WinError 10054] An existing connection was forcibly closed by the remote host).
-- **sql20** (sql) Which 5 companies had the largest total assets on 2026-06-30? - no SQL result: Numbers (SQL): Could not turn this question into SQL ([WinError 10054] An existing connection was forcibly closed by the remote host).
-
-## Not answered yet
-
-docs05, why04, why05, why06, why07, why08
+None.
