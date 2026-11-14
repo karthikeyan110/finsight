@@ -1,0 +1,178 @@
+[
+  {
+    "id": "h_sql01",
+    "category": "sql",
+    "question": "What was Johnson & Johnson's revenue in the quarter ending 2026-06-30?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "h_sql02",
+    "category": "sql",
+    "question": "What was General Motors' net income in the quarter ending 2026-06-30?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "h_docs01",
+    "category": "docs",
+    "question": "What does Tesla say about its energy generation and storage business?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "h_docs02",
+    "category": "docs",
+    "question": "How does Walmart describe the competition it faces?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "h_docs03",
+    "category": "docs",
+    "question": "What antitrust legal proceedings does Alphabet disclose?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "h_docs04",
+    "category": "docs",
+    "question": "How does Microsoft return capital to its shareholders?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "similarity",
+    "score": 0.413,
+    "ok": false
+  },
+  {
+    "id": "h_why01",
+    "category": "sql+docs",
+    "question": "Why did Coca-Cola's revenue grow in 2024?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "h_why02",
+    "category": "sql+docs",
+    "question": "Why did Alphabet's net income rise in 2024?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "h_why03",
+    "category": "sql+docs",
+    "question": "Why did Apple's revenue increase in fiscal 2025?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "h_why04",
+    "category": "sql+docs",
+    "question": "Why did Nike's net income change in fiscal 2026?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "h_ref01",
+    "category": "refuse/out_of_scope",
+    "question": "Who painted the Mona Lisa?",
+    "expected": [
+      "out_of_scope"
+    ],
+    "got": [
+      "out_of_scope"
+    ],
+    "method": "similarity",
+    "score": 0.121,
+    "ok": true
+  },
+  {
+    "id": "h_ref02",
+    "category": "refuse/out_of_scope",
+    "question": "Give me a recipe for pancakes",
+    "expected": [
+      "out_of_scope"
+    ],
+    "got": [
+      "out_of_scope"
+    ],
+    "method": "similarity",
+    "score": 0.085,
+    "ok": true
+  }
+]

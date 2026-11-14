@@ -126,3 +126,8 @@ Designed for the Gemini free tier: at most 2 LLM calls per question, cached answ
 - `app/streamlit_app.py` - chat UI with answer, SQL, table, time chart, citations and "LLM calls used".
 
 Note: the Gemini free tier allows about 20 requests per day per model. `src/llm.py` automatically moves to the next model in `LLM_MODELS` when one is over its limit.
+
+## Known limitations
+
+- **Broad words in risk questions (docs03, Tesla competition).** For "What risks does Tesla mention about competition?", the keyword search favours Risk Factors paragraphs about competition for employees, so the passage about "established and new automobile manufacturers" ranks 14th and does not reach the top 6 sent to the LLM.
+- **Single-quarter "why" questions (why03, Walmart October 2023).** 10-K filings explain changes for the full fiscal year, not for one quarter, so for a quarterly "why" question the right explanation (lapping opioid legal charges) ranks 13th; quarterly reports (10-Q) are not in the document set.

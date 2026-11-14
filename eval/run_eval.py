@@ -14,6 +14,8 @@ Part 2 - full answers via src.agent.agent.answer(), one question at a time:
 
 Run:  python -m eval.run_eval              (routing + as many answers as the quota allows)
       python -m eval.run_eval --routing-only
+      python -m eval.run_eval --questions eval/heldout_questions.json \
+          --results eval/results_heldout_v2.jsonl --routing eval/routing_heldout_v2.json
 """
 import json
 import logging
@@ -158,10 +160,20 @@ def run_answers(questions: list[dict]) -> None:
     print(f"\nAll {len(questions)} questions answered.")
 
 
+def _option(name: str) -> str | None:
+    """Value after a command-line option, e.g. --results eval/results_v2.jsonl."""
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else None
+
+
 def main() -> None:
+    global QUESTIONS, ROUTING, RESULTS
     logging.basicConfig(level=logging.WARNING, format="%(name)s: %(message)s")
     for noisy in ("cmdstanpy", "prophet"):
         logging.getLogger(noisy).setLevel(logging.ERROR)
+    # Optional: another question set / output files (e.g. the v2 run keeps v1 results intact)
+    QUESTIONS = Path(_option("--questions") or QUESTIONS)
+    ROUTING = Path(_option("--routing") or ROUTING)
+    RESULTS = Path(_option("--results") or RESULTS)
     questions = load_questions()
     run_routing(questions)
     if "--routing-only" not in sys.argv:

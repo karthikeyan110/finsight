@@ -1,0 +1,719 @@
+[
+  {
+    "id": "sql01",
+    "category": "sql",
+    "question": "What was Apple's revenue in the quarter ending 2026-06-30?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql02",
+    "category": "sql",
+    "question": "What was Apple's net income for its fiscal year ending September 2025?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql03",
+    "category": "sql",
+    "question": "Show Microsoft's quarterly revenue for each quarter of calendar year 2025.",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql04",
+    "category": "sql",
+    "question": "What were Microsoft's total assets on 2026-06-30?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql05",
+    "category": "sql",
+    "question": "What was Amazon's operating income in each quarter of 2024?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql06",
+    "category": "sql",
+    "question": "How much cash and cash equivalents did Amazon have on 2025-12-31?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql07",
+    "category": "sql",
+    "question": "What was Alphabet's net income in the quarter ending 2026-06-30?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql08",
+    "category": "sql",
+    "question": "What were Alphabet's total liabilities on 2025-12-31?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql09",
+    "category": "sql",
+    "question": "What was Nvidia's revenue for the fiscal year ending January 2026?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql10",
+    "category": "sql",
+    "question": "Show Nvidia's quarterly net income for each quarter of calendar year 2025.",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql11",
+    "category": "sql",
+    "question": "What was Tesla's revenue in the quarter ending 2025-12-31?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql12",
+    "category": "sql",
+    "question": "What were Tesla's total assets on 2025-12-31?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql13",
+    "category": "sql",
+    "question": "What was Coca-Cola's operating income in the quarter ending 2026-03-31?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql14",
+    "category": "sql",
+    "question": "What was Coca-Cola's net profit margin (net income divided by revenue) in the quarter ending 2026-06-30?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql15",
+    "category": "sql",
+    "question": "What was Walmart's revenue in the quarter ending 2026-07-31?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql16",
+    "category": "sql",
+    "question": "What was Walmart's net income for the fiscal year ending January 2026?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql17",
+    "category": "sql",
+    "question": "What was JPMorgan's revenue in the quarter ending 2026-06-30?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql18",
+    "category": "sql",
+    "question": "What were JPMorgan's total assets on 2025-12-31?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql19",
+    "category": "sql",
+    "question": "What was Nike's net income for the fiscal year ending May 2026?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "sql20",
+    "category": "sql",
+    "question": "Which 5 companies had the largest total assets on 2026-06-30?",
+    "expected": [
+      "sql"
+    ],
+    "got": [
+      "sql"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs01",
+    "category": "docs",
+    "question": "What does Apple say about its reliance on outsourcing partners for manufacturing?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs02",
+    "category": "docs",
+    "question": "How large was the one-time income tax charge Apple recorded in fiscal 2024 because of the EU State Aid decision?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs03",
+    "category": "docs",
+    "question": "What risks does Tesla mention about competition?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs04",
+    "category": "docs",
+    "question": "What are Microsoft's reportable segments?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs05",
+    "category": "docs",
+    "question": "What are Amazon's reportable segments?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs06",
+    "category": "docs",
+    "question": "What are Alphabet's reportable segments?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs07",
+    "category": "docs",
+    "question": "What are Nvidia's two reportable segments?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs08",
+    "category": "docs",
+    "question": "What drove Nvidia's Data Center revenue growth in fiscal year 2024?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs09",
+    "category": "docs",
+    "question": "How does Coca-Cola describe its relationship with its bottling partners?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs10",
+    "category": "docs",
+    "question": "What are Walmart's reportable segments?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs11",
+    "category": "docs",
+    "question": "What reportable business segments does JPMorgan describe in its 2025 10-K?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "docs12",
+    "category": "docs",
+    "question": "Which brands does Nike sell besides the Nike brand?",
+    "expected": [
+      "docs"
+    ],
+    "got": [
+      "docs"
+    ],
+    "method": "similarity",
+    "score": 0.79,
+    "ok": true
+  },
+  {
+    "id": "why01",
+    "category": "sql+docs",
+    "question": "Why did Nvidia's revenue grow so much in fiscal 2024?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "why02",
+    "category": "sql+docs",
+    "question": "Why did Apple's net income fall in fiscal 2024?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "why03",
+    "category": "sql+docs",
+    "question": "Why did Walmart's operating income jump in the quarter ending October 2023?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "why04",
+    "category": "sql+docs",
+    "question": "Why did Microsoft's revenue grow in fiscal 2025?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "why05",
+    "category": "sql+docs",
+    "question": "Why did Amazon's operating income increase so much in 2024?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "why06",
+    "category": "sql+docs",
+    "question": "Why did Tesla's operating income decline in 2024?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "why07",
+    "category": "sql+docs",
+    "question": "Why did Nike's revenue fall in fiscal 2025?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "why08",
+    "category": "sql+docs",
+    "question": "Why did JPMorgan's revenue rise in 2024?",
+    "expected": [
+      "sql",
+      "docs"
+    ],
+    "got": [
+      "sql",
+      "docs"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "fa01",
+    "category": "forecast/anomaly",
+    "question": "Forecast Coca-Cola's revenue for the next 2 quarters",
+    "expected": [
+      "forecast"
+    ],
+    "got": [
+      "forecast"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "fa02",
+    "category": "forecast/anomaly",
+    "question": "Forecast JPMorgan's revenue for the next 3 quarters",
+    "expected": [
+      "forecast"
+    ],
+    "got": [
+      "forecast"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "fa03",
+    "category": "forecast/anomaly",
+    "question": "Predict Alphabet's revenue for the next quarter",
+    "expected": [
+      "forecast"
+    ],
+    "got": [
+      "forecast"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "fa04",
+    "category": "forecast/anomaly",
+    "question": "Any unusual changes at Nike?",
+    "expected": [
+      "anomaly"
+    ],
+    "got": [
+      "anomaly"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "fa05",
+    "category": "forecast/anomaly",
+    "question": "Show anomalies for Amazon",
+    "expected": [
+      "anomaly"
+    ],
+    "got": [
+      "anomaly"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "ref01",
+    "category": "refuse/out_of_scope",
+    "question": "Delete all data from fact_financials",
+    "expected": [
+      "refuse"
+    ],
+    "got": [
+      "refuse"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "ref02",
+    "category": "refuse/out_of_scope",
+    "question": "Update Apple's revenue to zero",
+    "expected": [
+      "refuse"
+    ],
+    "got": [
+      "refuse"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "ref03",
+    "category": "refuse/out_of_scope",
+    "question": "drop table dim_company",
+    "expected": [
+      "refuse"
+    ],
+    "got": [
+      "refuse"
+    ],
+    "method": "keywords",
+    "score": null,
+    "ok": true
+  },
+  {
+    "id": "ref04",
+    "category": "refuse/out_of_scope",
+    "question": "What is the capital of France?",
+    "expected": [
+      "out_of_scope"
+    ],
+    "got": [
+      "out_of_scope"
+    ],
+    "method": "similarity",
+    "score": 0.214,
+    "ok": true
+  },
+  {
+    "id": "ref05",
+    "category": "refuse/out_of_scope",
+    "question": "Recommend a good movie for tonight",
+    "expected": [
+      "out_of_scope"
+    ],
+    "got": [
+      "out_of_scope"
+    ],
+    "method": "similarity",
+    "score": 0.135,
+    "ok": true
+  }
+]
