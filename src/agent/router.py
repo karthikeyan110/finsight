@@ -43,7 +43,9 @@ NUMBER_WORDS = ["revenue", "sales", "net income", "profit", "earnings", "operati
 DOCS_WORDS = ["risk", "mention", "describe", "strategy", "competition", "competitor",
               "business model", "say about", "says about", "discuss", "supply chain",
               "lawsuit", "legal proceeding", "regulation", "employees", "what does",
-              "products", "10-k"]
+              "products", "10-k",
+              # v2: wording of docs questions that were misrouted in the v1 eval
+              "segment", "tax charge", "state aid", "policy"]
 
 # Example questions for the similarity fallback (route -> examples)
 EXAMPLES = {

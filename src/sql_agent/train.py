@@ -38,7 +38,11 @@ GLOSSARY = [
     "dim_date.quarter and dim_date.year are the CALENDAR quarter/year of period_end. A company's fiscal quarter "
     "can differ (e.g. Apple's fiscal year ends in September, so period_end 2025-09-30 is Apple's fiscal Q4 / full year).",
     "'latest' means the row with the highest period_end for that company.",
-    "Find companies with name ILIKE '%name%' on dim_company.name (names are upper case, e.g. 'APPLE INC').",
+    "When the question ends with 'Company: <name> (cik N)', ALWAYS filter with f.cik = N "
+    "(or f.cik IN (...) for several companies) and never match names with ILIKE: several "
+    "companies can share part of a name (e.g. Coca-Cola and Coca-Cola Consolidated).",
+    "Find companies with name ILIKE '%name%' on dim_company.name only when no cik is given "
+    "(names are upper case, e.g. 'APPLE INC').",
     "To put several metrics side by side use MAX(value) FILTER (WHERE metric = '...') grouped by company and period_end.",
     "sector values: Manufacturing; Finance, Insurance & Real Estate; Services; "
     "Transportation, Communications & Utilities; Retail Trade; Mining; Wholesale Trade; Construction; "

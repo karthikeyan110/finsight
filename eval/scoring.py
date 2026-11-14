@@ -102,10 +102,19 @@ def docs_matches(q: dict, answer: str, citations: list) -> tuple[bool, str]:
     return True, "key facts present and right filing cited"
 
 
+def acceptable_routes(q: dict) -> list[list[str]]:
+    """Routes graded as correct: 'acceptable_routes' if given (v2), else just 'expected_routes'."""
+    return q.get("acceptable_routes") or [q["expected_routes"]]
+
+
+def route_ok(q: dict, routes: list[str]) -> bool:
+    return routes in acceptable_routes(q)
+
+
 def score(q: dict, r: dict) -> tuple[bool, str]:
     cat = q["category"]
-    if r["routes"] != q["expected_routes"]:
-        return False, f"routed to {r['routes']}, expected {q['expected_routes']}"
+    if not route_ok(q, r["routes"]):
+        return False, f"routed to {r['routes']}, expected {' or '.join(map(str, acceptable_routes(q)))}"
 
     if cat == "sql":
         if r.get("table") is None:

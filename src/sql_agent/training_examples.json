@@ -114,5 +114,9 @@
   {
     "question": "Show Tesla's quarterly revenue in 2024",
     "sql": "SELECT c.name, f.period_end, f.value AS quarterly_revenue, f.is_derived FROM fact_financials f JOIN dim_company c ON f.cik = c.cik WHERE c.name ILIKE '%tesla%' AND f.metric = 'Revenue' AND f.qtrs = 1 AND YEAR(f.period_end) = 2024 ORDER BY f.period_end"
+  },
+  {
+    "question": "What was Coca-Cola's revenue in the quarter ending 2025-09-30?\n\nCompany: COCA COLA CO (cik 21344). Filter with f.cik = 21344; do not match company names with ILIKE.",
+    "sql": "SELECT c.name, f.period_end, f.value AS revenue FROM fact_financials f JOIN dim_company c ON f.cik = c.cik WHERE f.cik = 21344 AND f.metric = 'Revenue' AND f.qtrs = 1 AND f.period_end = '2025-09-30'"
   }
 ]

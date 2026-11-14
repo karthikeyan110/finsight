@@ -1,60 +1,30 @@
-"""Diagnose failed "why" questions WITHOUT Gemini (read-only; changes nothing).
+"""Retrieval check for the 6 failed v1 "why" questions - NO Gemini (read-only).
 
-For each case:
-  (a) search the 10-K text directly for the explanation and report the TRUE section,
-      found with a heading parser that also handles headings split over two lines
-      ("Item 7." on one line, the title on the next - Amazon/Alphabet style)
-  (b) the rank of that passage in the CURRENT retrieval (same query + filters as ask_docs)
-  (c) the section label stored on that chunk
-Plus: how many chunks per company carry the correct Item label.
+For each case it finds the explanation passage in the 10-K text and reports:
+  - its section (src/rag/sections.py)
+  - its rank BEFORE v2 (v1 retrieval on the v1 index, measured 2026-11-14 in step 1)
+  - its rank AFTER v2 (src/rag/retrieve.py: hybrid search + RRF + cross-encoder, "why" mode),
+    and whether it is in the top 6 chunks that go to the LLM
+  - the section label stored on the chunk
 
-Run:  python -m eval.diagnose_why            (diagnosis table)
-      python -m eval.diagnose_why --explore  (print candidate passages)
+Plus two label checks per company:
+  - heading check (independent): in every filing, Items 1, 1A, 7 and 8 are found in order and
+    each heading's own words match its title ("Business", "Risk", "Discussion", "Financial
+    Statements"); JPMorgan's annual-report MD&A/financial statements included
+  - label agreement: share of chunks whose stored label is the section their text sits in
+
+Does not use eval/heldout_questions.json.
+
+Run:  python -m eval.diagnose_why
 """
 import re
-import sys
 from collections import defaultdict
 from functools import lru_cache
 
-from bs4 import BeautifulSoup
-
 from src.agent.router import find_company
-from src.rag.ask import _embed, _filter, years_in_question
 from src.rag.ingest import DOCS, get_collection
-
-ITEM = re.compile(r"^item\s*(\d+[a-c]?)\.?(\s+\S.*)?$", re.IGNORECASE)
-# 10-K items in their fixed order; real headings always appear in this order
-ORDER = ["1", "1A", "1B", "1C", "2", "3", "4", "5", "6", "7", "7A", "8", "9", "9A", "9B", "9C",
-         "10", "11", "12", "13", "14", "15", "16"]
-NAMES = {"1": "Business", "1A": "Risk Factors", "1B": "Unresolved Staff Comments",
-         "1C": "Cybersecurity", "2": "Properties", "3": "Legal Proceedings", "5": "Market for Equity",
-         "7": "MD&A", "7A": "Market Risk", "8": "Financial Statements", "9A": "Controls",
-         "10": "Directors and Officers", "15": "Exhibits and Schedules"}
-
-
-def _in_order(heads: list) -> list:
-    """Keep the longest run of headings whose items go up in order (1, 1A, ..., 7, 7A, 8 ...).
-
-    Drops cross-references and repeated page headers that look like headings
-    (e.g. a line "Item 7" at the top of every MD&A page, or "Item 1A" quoted in the text).
-    """
-    heads = [h for h in heads if h[1] in ORDER]
-    keys = [ORDER.index(h[1]) for h in heads]
-    best = [1] * len(heads)
-    prev = [-1] * len(heads)
-    for i in range(len(heads)):
-        for j in range(i):
-            if keys[j] < keys[i] and best[j] + 1 > best[i]:
-                best[i], prev[i] = best[j] + 1, j
-    if not heads:
-        return []
-    i = max(range(len(heads)), key=lambda k: best[k])
-    chain = []
-    while i != -1:
-        chain.append(heads[i])
-        i = prev[i]
-    return chain[::-1]
-RANK_DEPTH = 200  # how deep to look in the current retrieval
+from src.rag.retrieve import FINAL_K, retrieve
+from src.rag.sections import COVER, find_headings, read_lines
 
 # (id, question, filing that should explain it, regex for the explanation passage)
 CASES = [
@@ -71,6 +41,12 @@ CASES = [
     ("why08", "Why did JPMorgan's revenue rise in 2024?", "JPM_10K_2024.htm",
      r"net revenue was \$[\d.]+ billion, (up|an increase)"),
 ]
+# Rank of the passage in the v1 retrieval (old index, embeddings only), from step 1
+BEFORE = {"why02": 90, "why03": 46, "why04": 8, "why06": 29, "why07": 1, "why08": 47}
+
+# Words each heading must contain (Microsoft splits words, so spaces are ignored)
+HEADING_WORDS = {"1": ("business",), "1A": ("risk",), "7": ("discussion",),
+                 "8": ("financial statements", "independent registered")}
 
 
 def _norm(s: str) -> str:
@@ -79,51 +55,26 @@ def _norm(s: str) -> str:
 
 @lru_cache(maxsize=None)
 def parse(filename: str):
-    """Full text (lines joined by spaces) + true section headings as (offset, item, name)."""
-    soup = BeautifulSoup((DOCS / filename).read_bytes(), "lxml")
-    for hidden in soup.find_all("ix:header"):
-        hidden.decompose()
-    lines = [_norm(l) for l in soup.get_text("\n").split("\n")]
-    lines = [l for l in lines if l]
-
-    heads, text, pos = [], [], 0
-    for i, line in enumerate(lines):
-        m = ITEM.match(line)
-        if m and len(line) < 160:
-            title = (m.group(2) or "").strip()
-            nxt = lines[i + 1] if i + 1 < len(lines) else ""
-            if not title and len(nxt) < 120 and not ITEM.match(nxt):
-                title = nxt  # heading split over two lines
-            if title:
-                item = m.group(1).upper()
-                heads.append((pos, item, f"Item {item}. {NAMES.get(item, title[:40])}"))
-        text.append(line)
+    """Full text (lines joined by spaces), section starts as (char offset, label), lines, heads."""
+    lines = read_lines(DOCS / filename)
+    heads = find_headings(lines)
+    offsets, pos = [], 0
+    for line in lines:
+        offsets.append(pos)
         pos += len(line) + 1
-    full = " ".join(text)
-
-    # The table of contents lists every Item first; the body starts at the 2nd "Item 1"
-    ones = [h for h in heads if h[1] == "1"]
-    body_start = ones[1][0] if len(ones) > 1 else 0
-    heads = _in_order([h for h in heads if h[0] >= body_start])
-    return full, heads, body_start
+    starts = [(offsets[i], lab) for i, _, lab in heads]
+    return " ".join(lines), starts, lines, heads
 
 
-def true_section(filename: str, offset: int) -> str:
-    _, heads, body_start = parse(filename)
-    current = "Cover page / contents"
-    if offset < body_start:
-        return current
-    for pos, _, name in heads:
+def section_at(filename: str, offset: int) -> str:
+    _, starts, _, _ = parse(filename)
+    current = COVER
+    for pos, lab in starts:
         if pos <= offset:
-            current = name
+            current = lab
         else:
             break
     return current
-
-
-def _item_no(label: str):
-    m = re.search(r"item\s*(\d+[a-c]?)", label or "", re.IGNORECASE)
-    return m.group(1).upper() if m else None
 
 
 def chunks_of(filename: str) -> list:
@@ -132,11 +83,30 @@ def chunks_of(filename: str) -> list:
     return sorted(rows, key=lambda r: int(r[0].rsplit("-", 1)[1]))
 
 
-def label_accuracy() -> dict:
-    """Per company: (chunks whose stored Item label matches the true section, chunks checked)."""
-    per_company = defaultdict(lambda: [0, 0])
+def heading_check(filename: str) -> list[str]:
+    """Problems found by the independent heading check (empty = OK)."""
+    _, _, lines, heads = parse(filename)
+    problems = []
+    for item, words in HEADING_WORDS.items():
+        found = [h for h in heads if h[1] == item]
+        if not found:
+            problems.append(f"no Item {item}")
+        for i, _, lab in found:
+            text = " ".join(lines[i:i + 3]).lower().replace(" ", "")
+            if not any(w.replace(" ", "") in text for w in words):
+                problems.append(f"{lab}: heading words do not match")
+    return problems
+
+
+def label_report() -> dict:
+    """Per company: filings passing the heading check, and label agreement of chunks."""
+    out = defaultdict(lambda: {"filings": 0, "ok_filings": 0, "agree": 0, "chunks": 0})
     for path in sorted(DOCS.glob("*.htm")):
-        full, _, _ = parse(path.name)
+        ticker = path.name.split("_")[0]
+        r = out[ticker]
+        r["filings"] += 1
+        r["ok_filings"] += not heading_check(path.name)
+        full, _, _, _ = parse(path.name)
         cursor = 0
         for _, doc, meta in chunks_of(path.name):
             head = _norm(doc)[:60]
@@ -144,66 +114,46 @@ def label_accuracy() -> dict:
             if start < 0:
                 start = full.find(head)
             if start < 0:
-                continue  # chunk text not located (rare); left out of the count
+                continue
             cursor = start + 1
-            truth = true_section(path.name, start)
-            stored = meta.get("section", "")
-            ok = (_item_no(stored) == _item_no(truth)) if _item_no(truth) else (_item_no(stored) is None)
-            c = per_company[meta["ticker"]]
-            c[0] += ok
-            c[1] += 1
-    return {k: tuple(v) for k, v in per_company.items()}
+            r["chunks"] += 1
+            r["agree"] += meta.get("section") == section_at(path.name, start)
+    return out
 
 
-def diagnose(case) -> dict:
+def check(case) -> dict:
     cid, question, filename, pattern = case
-    full, _, _ = parse(filename)
+    full, _, _, _ = parse(filename)
     match = re.search(pattern, full, re.IGNORECASE)
     if not match:
         return {"id": cid, "found": False, "filing": filename}
-    snippet = full[match.start(): match.start() + 160]
-
-    # The chunk(s) that hold the passage
     needle = _norm(full[match.start(): match.start() + 50]).lower()
-    holders = [(i, meta) for i, doc, meta in chunks_of(filename) if needle in _norm(doc).lower()]
-
-    # Current retrieval: same query and filters as ask_docs
-    ticker = find_company(question)
-    years = years_in_question(question)
-    hits = get_collection().query(query_embeddings=[_embed(question)], n_results=RANK_DEPTH,
-                                  where=_filter(ticker, years))
-    ids = hits["ids"][0]
-    ranks = [ids.index(h) + 1 for h, _ in holders if h in ids]
-    return {"id": cid, "found": True, "filing": filename,
-            "true_section": true_section(filename, match.start()), "snippet": snippet,
-            "stored_label": holders[0][1].get("section") if holders else "(no chunk holds it)",
-            "rank": min(ranks) if ranks else None, "ticker": ticker, "years": years,
-            "pool": len(ids)}
+    holders = {i: meta for i, doc, meta in chunks_of(filename) if needle in _norm(doc).lower()}
+    hits = retrieve(question, find_company(question), mode="why")  # up to 30, best first
+    ranks = [n for n, h in enumerate(hits, 1) if h["id"] in holders]
+    return {"id": cid, "found": True, "filing": filename, "question": question,
+            "section": section_at(filename, match.start()),
+            "label": next(iter(holders.values())).get("section") if holders else "(no chunk)",
+            "after": ranks[0] if ranks else None, "pool": len(hits)}
 
 
 def main() -> None:
-    if "--explore" in sys.argv:
-        for cid, _, filename, pattern in CASES:
-            full, _, _ = parse(filename)
-            print(f"\n== {cid} {filename} /{pattern}/")
-            for m in list(re.finditer(pattern, full, re.IGNORECASE))[:3]:
-                print(f"  [{true_section(filename, m.start())}] ...{full[m.start(): m.start() + 220]}")
-        return
-
-    print("| Question | Explanation in the 10-K? | True section | Rank in current retrieval | Stored label |")
-    print("|---|---|---|---|---|")
+    print("| Question | Explanation section | Rank before (v1) | Rank after (v2) | In top 6 after? | Stored label |")
+    print("|---|---|---|---|---|---|")
     for case in CASES:
-        d = diagnose(case)
+        d = check(case)
         if not d["found"]:
-            print(f"| {d['id']} | not found by the pattern in {d['filing']} | - | - | - |")
+            print(f"| {d['id']} | passage not found in {d['filing']} | | | | |")
             continue
-        rank = str(d["rank"]) if d["rank"] else f"not in top {d['pool']}"
-        print(f"| {d['id']} | yes, {d['filing']}: \"{d['snippet'][:110]}...\" | {d['true_section']} "
-              f"| {rank} (filter: {d['ticker']}, years {d['years']}) | {d['stored_label']} |")
+        after = str(d["after"]) if d["after"] else f"not in top {d['pool']}"
+        top = "yes" if d["after"] and d["after"] <= FINAL_K else "no"
+        print(f"| {d['id']} | {d['section']} | {BEFORE[d['id']]} | {after} | {top} | {d['label']} |")
 
-    print("\nChunks with the correct Item label, per company:")
-    for ticker, (ok, n) in sorted(label_accuracy().items()):
-        print(f"  {ticker:5} {ok:5}/{n:<5} ({ok / n:.0%})")
+    print("\n| Company | Filings passing heading check | Chunks with correct label |")
+    print("|---|---|---|")
+    for ticker, r in sorted(label_report().items()):
+        print(f"| {ticker} | {r['ok_filings']}/{r['filings']} | "
+              f"{r['agree']}/{r['chunks']} ({r['agree'] / r['chunks']:.0%}) |")
 
 
 if __name__ == "__main__":

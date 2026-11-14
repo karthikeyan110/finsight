@@ -13,11 +13,11 @@ from pathlib import Path
 
 import chromadb
 import duckdb
-from bs4 import BeautifulSoup
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
 
 from src.rag.download_10k import COMPANIES
+from src.rag.sections import read_lines, sections
 
 ROOT = Path(__file__).resolve().parents[2]
 DOCS = ROOT / "data" / "docs"
@@ -28,10 +28,6 @@ EMBED_MODEL = "all-MiniLM-L6-v2"
 
 CHUNK_SIZE = 800
 OVERLAP = 100
-
-# A real section heading looks like "Item 1A.  Risk Factors" (number AND title on one line).
-# Table-of-contents lines are just "Item 1A." so they don't match.
-HEADING = re.compile(r"^Item\s*\d+[A-C]?\.?\s+\S.{2,150}$", re.IGNORECASE)
 
 
 def split_text(text: str) -> list[str]:
@@ -50,22 +46,13 @@ def split_text(text: str) -> list[str]:
 
 
 def read_html(path: Path) -> list[tuple[str, dict]]:
-    """Return (text, metadata) pieces, one per 10-K section ("Item ...")."""
-    soup = BeautifulSoup(path.read_bytes(), "lxml")
-    for hidden in soup.find_all("ix:header"):  # hidden XBRL data, not readable text
-        hidden.decompose()
-    lines = [" ".join(l.split()) for l in soup.get_text("\n").split("\n")]
-    lines = [l for l in lines if l]
+    """Return (text, metadata) pieces, one per 10-K section ("Item 7. MD&A", ...).
 
-    sections, current, buffer = [], "Cover page", []
-    for line in lines:
-        if HEADING.match(line):
-            sections.append((current, buffer))
-            current, buffer = line, []
-        else:
-            buffer.append(line)
-    sections.append((current, buffer))
-    return [(" ".join(buf), {"section": name}) for name, buf in sections if buf]
+    The section reader (src/rag/sections.py) handles headings split over two lines,
+    page headers, cross-references and JPMorgan's annual-report MD&A.
+    """
+    return [(" ".join(buf), {"section": name})
+            for name, buf in sections(read_lines(path)) if buf]
 
 
 def read_pdf(path: Path) -> list[tuple[str, dict]]:

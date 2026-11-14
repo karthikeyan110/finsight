@@ -1,10 +1,13 @@
 """Answer questions from the 10-K documents (RAG).
 
-ask_docs(question, company=None) -> {"answer": str, "citations": [...], "years_searched": [...]}
+ask_docs(question, company=None, mode="docs")
+  -> {"answer": str, "citations": [...], "years_searched": [...]}
 
-Steps: embed the question -> find the 5 closest chunks in ChromaDB (filtered by
-company, and by fiscal year if the question mentions a year) ->
-ask Gemini to answer ONLY from those chunks -> return answer + where it came from.
+Steps: find the 6 best chunks with hybrid local search (src/rag/retrieve.py:
+embeddings + BM25 keywords, fused, re-ranked by a cross-encoder) -> ask Gemini to
+answer ONLY from those chunks -> return the answer + where it came from.
+mode="why" is used for "why did <number> change" questions: the search prefers the
+named year's MD&A, and the prompt asks for the drivers of the change.
 
 Run:  python -m src.rag.ask "What risks does Apple mention about supply chains?" AAPL
 """
@@ -14,22 +17,30 @@ from sentence_transformers import SentenceTransformer
 
 from src import llm
 from src.rag.ingest import EMBED_MODEL, get_collection
+from src.rag.retrieve import FINAL_K, retrieve
 
 NOT_FOUND = "Not found in the documents."
-TOP_K = 5
+TOP_K = FINAL_K  # chunks sent to the LLM
 
 PROMPT = """Answer the question using ONLY the numbered excerpts from 10-K filings below.
 Rules:
 - Use only facts written in the excerpts. Do not use outside knowledge.
 - Do not calculate anything; only quote numbers exactly as written.
 - After each fact, cite the excerpt number like [1] or [2].
-- If the excerpts do not contain the answer, reply with exactly: {not_found}
+{why_rule}- If the excerpts do not contain the answer, reply with exactly: {not_found}
 
 Excerpts:
 {context}
 
 Question: {question}
 Answer:"""
+
+# Extra rule for "why" questions: drivers of a change ARE the explanation
+WHY_RULE = """- This question asks WHY a number changed. If the excerpts describe what drove or made up
+  the change (segments, products, channels, prices, volumes, costs, one-time charges or gains),
+  summarise those drivers as the explanation, with citations. Reply "{not_found}" only when
+  nothing related to the change is present.
+"""
 
 _model = None  # embedding model, loaded once
 
@@ -70,20 +81,14 @@ def _filter(company: str | None, years: list[int]) -> dict | None:
     return parts[0] if len(parts) == 1 else {"$and": parts}
 
 
-def ask_docs(question: str, company: str | None = None) -> dict:
-    """Answer `question` from the top 5 chunks.
+def ask_docs(question: str, company: str | None = None, mode: str = "docs") -> dict:
+    """Answer `question` from the 6 best chunks (only `company`'s 10-Ks if given).
 
-    Filters: only `company`'s ticker if given, and only the matching 10-Ks if the
-    question mentions a year. If no 10-K exists for those years, all years are searched.
+    mode="why": prefer the named year's MD&A and explain the drivers of a change.
     """
-    collection = get_collection()
-    vector = _embed(question)
-    years = years_in_question(question)
-    hits = collection.query(query_embeddings=[vector], n_results=TOP_K, where=_filter(company, years))
-    if years and not hits["documents"][0]:
-        years = []  # we have no 10-K for those years -> search all years instead
-        hits = collection.query(query_embeddings=[vector], n_results=TOP_K, where=_filter(company, []))
-    docs, metas = hits["documents"][0], hits["metadatas"][0]
+    hits = retrieve(question, company, mode)[:TOP_K]
+    years = sorted({h["meta"].get("fiscal_year") for h in hits})
+    docs, metas = [h["text"] for h in hits], [h["meta"] for h in hits]
     if not docs:
         return {"answer": NOT_FOUND, "citations": [], "years_searched": years}
 
@@ -91,7 +96,9 @@ def ask_docs(question: str, company: str | None = None) -> dict:
         f"[{i}] ({m['filename']}, {_where(m)})\n{d}" for i, (d, m) in enumerate(zip(docs, metas), 1))
 
     # Shared client: cached, and falls back to another model if one is over its limit
-    answer = llm.generate(PROMPT.format(not_found=NOT_FOUND, context=context, question=question))
+    why_rule = WHY_RULE.format(not_found=NOT_FOUND) if mode == "why" else ""
+    answer = llm.generate(PROMPT.format(not_found=NOT_FOUND, context=context, question=question,
+                                        why_rule=why_rule))
     if answer in (llm.LIMIT_MESSAGE, llm.UNAVAILABLE_MESSAGE):
         return {"answer": answer, "citations": [], "years_searched": years}  # nothing to cite
 

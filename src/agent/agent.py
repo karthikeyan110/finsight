@@ -42,9 +42,17 @@ def _money(x: float) -> str:
 # ---------- tools ----------
 
 def _run_sql(question: str, out: dict) -> None:
+    from src.agent.companies import ambiguity_message, resolve_companies, sql_hint
     from src.sql_agent.agent import ask_sql
+    # Resolve company names to exact ciks first, so the SQL filters on f.cik, not ILIKE
+    matches = resolve_companies(question)
+    unclear = [m for m in matches if m.cik is None]
+    if unclear:  # several companies share that name: ask instead of guessing (0 LLM calls)
+        out["errors"].append(ambiguity_message(unclear[0]))
+        return
+    out["companies"] = [(m.cik, m.name) for m in matches]
     try:
-        sql, df = ask_sql(question)
+        sql, df = ask_sql(question + sql_hint(matches))
         out["sql"], out["table"] = sql, df
     except llm.DailyLimitReached as e:
         out["errors"].append(str(e))
@@ -52,10 +60,10 @@ def _run_sql(question: str, out: dict) -> None:
         out["errors"].append(f"Numbers (SQL): {e}")
 
 
-def _run_docs(question: str, ticker: str | None, out: dict) -> None:
+def _run_docs(question: str, ticker: str | None, out: dict, mode: str = "docs") -> None:
     from src.rag.ask import ask_docs
     try:
-        out["docs"] = ask_docs(question, ticker)
+        out["docs"] = ask_docs(question, ticker, mode)
     except Exception as e:  # noqa: BLE001
         out["errors"].append(f"Documents: {e}")
 
@@ -156,7 +164,8 @@ def answer(question: str) -> dict:
     if "sql" in r.routes:
         _run_sql(question, out)
     if "docs" in r.routes:
-        _run_docs(question, r.ticker, out)
+        # sql+docs = a "why did this number change" question: search the named year's MD&A
+        _run_docs(question, r.ticker, out, mode="why" if "sql" in r.routes else "docs")
     if "forecast" in r.routes:
         _run_forecast(r.cik, r.quarters, out)
     if "anomaly" in r.routes:

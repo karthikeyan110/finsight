@@ -130,6 +130,11 @@ REFUSE_OOS = [
 ]
 
 
+# v2 grading change: "What drove Nvidia's Data Center revenue growth" asks about a number
+# AND its explanation, so routing it to sql+docs is as correct as docs alone.
+ACCEPTABLE_ROUTES = {"docs08": [["docs"], ["sql", "docs"]]}
+
+
 def _json_value(v):
     if isinstance(v, (date, datetime)):
         return v.isoformat()[:10]
@@ -164,6 +169,11 @@ def main() -> None:
     for i, (ticker, q, routes) in enumerate(REFUSE_OOS, 1):
         questions.append({"id": f"ref{i:02d}", "category": "refuse/out_of_scope", "ticker": ticker,
                           "question": q, "expected_routes": routes})
+
+    # v2 grading change: questions where more than one route is a correct choice
+    for q in questions:
+        if q["id"] in ACCEPTABLE_ROUTES:
+            q["acceptable_routes"] = ACCEPTABLE_ROUTES[q["id"]]
 
     OUT.write_text(json.dumps(questions, indent=2), encoding="utf-8")
     tickers = {q["ticker"] for q in questions} - {"-", "ALL"}

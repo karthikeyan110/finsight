@@ -24,7 +24,7 @@ from pathlib import Path
 from src import llm
 from src.agent.agent import answer
 from src.agent.router import route
-from eval.scoring import is_network_error, score, status_of
+from eval.scoring import is_network_error, route_ok, score, status_of
 
 HERE = Path(__file__).parent
 QUESTIONS = HERE / "questions.json"
@@ -48,7 +48,7 @@ def run_routing(questions: list[dict]) -> list[dict]:
         rows.append({"id": q["id"], "category": q["category"], "question": q["question"],
                      "expected": q["expected_routes"], "got": r.routes, "method": r.method,
                      "score": None if r.score is None else round(r.score, 3),
-                     "ok": r.routes == q["expected_routes"]})
+                     "ok": route_ok(q, r.routes)})
     ROUTING.write_text(json.dumps(rows, indent=2), encoding="utf-8")
 
     ok = sum(r["ok"] for r in rows)

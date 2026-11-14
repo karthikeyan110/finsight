@@ -650,7 +650,16 @@
       "NVDA_10K_2024.htm",
       "NVDA_10K_2025.htm"
     ],
-    "expected_section": "Item 7. MD&A"
+    "expected_section": "Item 7. MD&A",
+    "acceptable_routes": [
+      [
+        "docs"
+      ],
+      [
+        "sql",
+        "docs"
+      ]
+    ]
   },
   {
     "id": "docs09",

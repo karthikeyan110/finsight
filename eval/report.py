@@ -66,8 +66,17 @@ def main() -> None:
         "",
         "Scoring: SQL = same values as the reference result (any row order / column names); "
         "docs = all key facts present and an expected 10-K cited (keyword matching, no LLM judge).",
-        "", "## Failures (wrong answers or wrong routes)", "",
     ]
+    # Grading changes since v1: questions where more than one route counts as correct
+    multi = [q for q in questions if q.get("acceptable_routes")]
+    if multi:
+        lines += ["", "**Grading change (v2, applies to runs from v2 onward):** these questions "
+                      "accept more than one route:"]
+        lines += [f"- {q['id']} \"{q['question']}\" accepts "
+                  + " or ".join(str(r) for r in q["acceptable_routes"])
+                  + " (it asks for a number AND its explanation, so sql+docs is also a correct route)"
+                  for q in multi]
+    lines += ["", "## Failures (wrong answers or wrong routes)", ""]
 
     misrouted = [r for r in routing if not r["ok"]]
     failed = [r for r in results if status_of(r) == "fail"]
