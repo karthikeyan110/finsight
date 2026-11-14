@@ -70,6 +70,42 @@ def test_bm25_prefers_exact_rare_words():
     assert scores.index(max(scores)) == 1
 
 
+# A realistic chunk-length paragraph (~800 characters, like the real 10-K chunks)
+RISK = ("We face strong competition for our products and services from other automobile "
+        "manufacturers and technology companies. A significant and growing number of established "
+        "and new automobile manufacturers, as well as other companies, have entered, or are reported "
+        "to have plans to enter, the market for electric and other alternative fuel vehicles, "
+        "including hybrid, plug-in hybrid and fully electric vehicles, as well as the market for "
+        "self-driving technology and other vehicle applications and software platforms. In some "
+        "cases, our competitors offer or will offer electric vehicles in important markets such as "
+        "China and Europe, and have announced an intention to produce electric vehicles exclusively "
+        "at some point in the future. Many of our competitors have significantly more or "
+        "better-established resources than we do to devote to the design, development, "
+        "manufacturing, distribution, promotion, sale and support of their products.")
+
+
+def test_near_duplicates_across_years():
+    from src.rag.retrieve import near_duplicates
+    assert near_duplicates(RISK, RISK.replace("have entered", "has entered"))
+    assert not near_duplicates(RISK, "Revenue grew because of higher prices for our vehicles.")
+
+
+def test_dedupe_keeps_newest_filing_at_best_rank():
+    from src.rag.retrieve import dedupe
+    hits = [{"id": "a", "text": RISK, "meta": {"fiscal_year": 2023}, "score": 0.9},
+            {"id": "b", "text": "Something different about energy storage.", "meta": {"fiscal_year": 2024}, "score": 0.8},
+            {"id": "c", "text": RISK, "meta": {"fiscal_year": 2025}, "score": 0.7}]
+    kept = dedupe(hits)
+    assert [h["id"] for h in kept] == ["c", "b"]   # the 2025 copy, placed where the best copy was
+    assert kept[0]["score"] == 0.9
+
+
+def test_scale():
+    from src.rag.retrieve import _scale
+    assert _scale([2.0, 4.0, 3.0]) == [0.0, 1.0, 0.5]
+    assert _scale([1.0, 1.0]) == [0.5, 0.5]
+
+
 def test_why_query_expansion():
     q = expand("Why did Tesla's operating income decline in 2024?")
     assert "income from operations" in q and "primarily due to" in q

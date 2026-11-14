@@ -8,8 +8,13 @@ Steps:
        - embedding search (meaning)         all-MiniLM-L6-v2 via ChromaDB
        - BM25 keyword search (exact words)  "opioid", "State Aid", "$10.2 billion"
   2. Reciprocal rank fusion (RRF): each chunk scores 1/(60 + rank) per search; summed.
-  3. The top 30 are re-ranked by a cross-encoder, which reads question and chunk
-     together (more accurate than comparing two separate embeddings).
+  3. The top 30 are scored by a cross-encoder, which reads question and chunk together.
+     It does not decide alone: the final score blends it with the fusion rank,
+     CE_WEIGHT * cross-encoder + (1 - CE_WEIGHT) * fusion, both scaled to 0-1
+     (the cross-encoder alone over-rated chunks that merely repeat a word, e.g.
+     "competitive labor market" for a question about competing carmakers).
+  4. Near-duplicates are removed: the same paragraph repeated in several years' 10-Ks
+     is kept once, from the newest filing, so the top 6 hold different passages.
 
 mode="why" (questions about why a number changed):
   - the filing for the fiscal year named in the question is searched first
@@ -31,7 +36,10 @@ POOL = 100            # candidates taken from each search
 CANDIDATES = 30       # how many go to the cross-encoder
 FINAL_K = 6           # how many go to the LLM
 RERANK_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-MDA_BOOST = 2.0       # added to the cross-encoder score of MD&A chunks in "why" mode
+CE_WEIGHT = 0.5       # final = CE_WEIGHT * cross-encoder + (1 - CE_WEIGHT) * fusion rank (both 0-1)
+MDA_BOOST = 0.2       # added to the final score (0-1 scale) of MD&A chunks in "why" mode
+DEDUP = True          # remove near-duplicate chunks before picking the top FINAL_K
+DUP_JACCARD = 0.8     # share of 3-word phrases two chunks must have in common to be duplicates
 
 # Other names for each metric, and how 10-Ks explain changes (query expansion, no LLM)
 METRIC_WORDS = {
@@ -177,14 +185,55 @@ def retrieve(question: str, company: str | None = None, mode: str = "docs") -> l
             fused[cid] += 1 / (RRF_K + rank)
     top = [cid for cid, _ in fused.most_common(CANDIDATES)]
 
-    # 3) cross-encoder re-rank (+ MD&A boost for "why" questions)
+    # 3) blend the cross-encoder with the fusion rank (+ MD&A boost for "why" questions)
     by_id = {cid: (doc, meta) for cid, doc, meta in zip(ids, docs, metas)}
     top = [cid for cid in top if cid in by_id]
-    ce = _rerank(question if mode != "why" else expand(question), [by_id[c][0] for c in top])
+    ce = _scale(_rerank(question if mode != "why" else expand(question), [by_id[c][0] for c in top]))
+    # fusion rank scaled to 0-1: the best fused chunk = 1, the 30th = 0
+    fusion = [1 - i / max(len(top) - 1, 1) for i in range(len(top))]
     hits = []
-    for cid, score in zip(top, ce):
+    for cid, c, f in zip(top, ce, fusion):
         doc, meta = by_id[cid]
+        score = CE_WEIGHT * c + (1 - CE_WEIGHT) * f
         if mode == "why" and is_mda(meta.get("section", "")):
             score += MDA_BOOST
         hits.append({"id": cid, "text": doc, "meta": meta, "score": score})
-    return sorted(hits, key=lambda h: -h["score"])
+    hits.sort(key=lambda h: -h["score"])
+
+    # 4) the same paragraph from several years' 10-Ks counts once (newest filing kept)
+    return dedupe(hits) if DEDUP else hits
+
+
+def _scale(values: list[float]) -> list[float]:
+    """Min-max scale to 0-1 (all equal -> all 0.5)."""
+    lo, hi = min(values, default=0.0), max(values, default=0.0)
+    return [0.5] * len(values) if hi == lo else [(v - lo) / (hi - lo) for v in values]
+
+
+def _shingles(text: str) -> set:
+    words = tokenize(text)
+    return {" ".join(words[i:i + 3]) for i in range(max(len(words) - 2, 1))}
+
+
+def near_duplicates(a: str, b: str) -> bool:
+    """True if two chunks share at least DUP_JACCARD of their 3-word phrases."""
+    sa, sb = _shingles(a), _shingles(b)
+    return bool(sa and sb) and len(sa & sb) / len(sa | sb) >= DUP_JACCARD
+
+
+def dedupe(hits: list[dict]) -> list[dict]:
+    """Keep one chunk per group of near-duplicates: the newest filing's copy, placed
+    where the group's best-ranked copy was. `hits` must be sorted best first."""
+    groups: list[list[dict]] = []
+    for h in hits:
+        for g in groups:
+            if near_duplicates(g[0]["text"], h["text"]):
+                g.append(h)
+                break
+        else:
+            groups.append([h])
+    kept = []
+    for g in groups:  # groups are already in order of their best copy
+        newest = max(g, key=lambda h: (h["meta"].get("fiscal_year", 0), h["score"]))
+        kept.append({**newest, "score": g[0]["score"]})
+    return kept
