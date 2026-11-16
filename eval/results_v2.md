@@ -1,6 +1,6 @@
 # FinSight evaluation: v1 vs v2 (2026-11-16)
 
-v2 answered **44/50** v1 questions and **12/12** held-out questions (4 network/timeout error(s), retried on the next run). Accuracy counts judged answers only.
+v2 answered **44/50** v1 questions and **12/12** held-out questions (1 network/timeout error(s), retried on the next run). Accuracy counts judged answers only.
 
 ## v1 questions (50): v1 vs v2
 
@@ -8,12 +8,12 @@ v2 answered **44/50** v1 questions and **12/12** held-out questions (4 network/t
 |---|---|---|
 | Routing accuracy (router only) | 44/50 (88%) | 50/50 (100%) |
 | SQL execution accuracy | 18/20 (90%) | 20/20 (100%) |
-| Docs: key facts + right filing | 6/12 (50%) | 8/10 (80%) (of 12) |
-| SQL + docs "why" | 2/8 (25%) | not run yet |
+| Docs: key facts + right filing | 6/12 (50%) | 10/12 (83%) |
+| SQL + docs "why" | 2/8 (25%) | 1/1 (100%) (of 8) |
 | Forecast / anomaly | 5/5 (100%) | 5/5 (100%) |
 | Refuse / out of scope | 5/5 (100%) | 5/5 (100%) |
-| Average latency per judged question | 86.2 s | 16.0 s |
-| Average LLM calls per judged question | 0.88 | 0.72 |
+| Average latency per judged question | 86.2 s | 16.6 s |
+| Average LLM calls per judged question | 0.88 | 0.77 |
 
 **Grading change (v2):** docs08 ("What drove Nvidia's Data Center revenue growth in fiscal year 2024?") accepts the route ["docs"] or ["sql", "docs"], because it asks for a number and its explanation. In v1 only ["docs"] counted, so v1's docs08 result was graded under the stricter rule.
 
@@ -73,9 +73,6 @@ before step 2: 4 ✓ | after step 2: 16 | now: 14
 
 - **docs03** (docs) What risks does Tesla mention about competition? - missing key facts: manufacturers
 - **docs08** (docs) What drove Nvidia's Data Center revenue growth in fiscal year 2024? - missing key facts: hopper
-- **docs09** (docs) network/timeout error, will be retried
-- **docs12** (docs) network/timeout error, will be retried
-- **why01** (sql+docs) network/timeout error, will be retried
 - **why02** (sql+docs) network/timeout error, will be retried
 
 ## Failures: held-out questions

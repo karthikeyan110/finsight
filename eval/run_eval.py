@@ -37,6 +37,7 @@ RESULTS = HERE / "results.jsonl"
 ORDER = ["refuse/out_of_scope", "forecast/anomaly", "sql", "docs", "sql+docs"]
 MAX_UNAVAILABLE_IN_A_ROW = 3  # model overloaded / network problems -> stop for now
 NETWORK_RETRIES = 2           # extra attempts for a question that hit a network/timeout error
+RETRY_WAITS_S = [20, 60]      # backoff: wait 20 s before the 1st retry, 60 s before the 2nd
 
 
 def load_questions() -> list[dict]:
@@ -134,7 +135,9 @@ def run_answers(questions: list[dict]) -> None:
             if not _network_error(out) or _hit_limit(out):
                 break
             if attempt < NETWORK_RETRIES:
-                print(f"  {q['id']}: network error, retrying ({attempt + 1}/{NETWORK_RETRIES})")
+                wait = RETRY_WAITS_S[min(attempt, len(RETRY_WAITS_S) - 1)]
+                print(f"  {q['id']}: network error, retrying in {wait} s ({attempt + 1}/{NETWORK_RETRIES})")
+                time.sleep(wait)  # give the network/server time to recover
 
         if _hit_limit(out):
             remaining = len(todo) - n + 1

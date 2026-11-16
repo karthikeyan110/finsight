@@ -29,9 +29,10 @@ DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash"]
 LIMIT_MESSAGE = "Daily free limit reached, try again tomorrow."
 UNAVAILABLE_MESSAGE = "The AI model is unavailable right now, please try again in a minute."
 MAX_CALLS = 2  # per question
-# A stuck connection fails after 60 s (and counts as a network error) instead of
-# hanging for minutes. The Gemini SDK takes the timeout in milliseconds.
-REQUEST_TIMEOUT_MS = 60_000
+# A stuck connection fails after 120 s (and counts as a network error) instead of
+# hanging for minutes; 60 s was too short on a slow network (many 504 timeouts).
+# The Gemini SDK takes the timeout in milliseconds.
+REQUEST_TIMEOUT_MS = 120_000
 
 # 429 = daily limit reached. 503 (overloaded) and 404 (model not offered to this
 # account) also move on to the next model.
