@@ -1,19 +1,19 @@
-# FinSight evaluation: v1 vs v2 (2026-11-14)
+# FinSight evaluation: v1 vs v2 (2026-11-16)
 
-v2 answered **36/50** v1 questions and **2/12** held-out questions (3 network/timeout error(s), retried on the next run). Accuracy counts judged answers only.
+v2 answered **44/50** v1 questions and **12/12** held-out questions (4 network/timeout error(s), retried on the next run). Accuracy counts judged answers only.
 
 ## v1 questions (50): v1 vs v2
 
 | Metric | v1 (baseline b3c146e) | v2 |
 |---|---|---|
 | Routing accuracy (router only) | 44/50 (88%) | 50/50 (100%) |
-| SQL execution accuracy | 18/20 (90%) | 17/17 (100%) (of 20) |
-| Docs: key facts + right filing | 6/12 (50%) | 5/6 (83%) (of 12) |
+| SQL execution accuracy | 18/20 (90%) | 20/20 (100%) |
+| Docs: key facts + right filing | 6/12 (50%) | 8/10 (80%) (of 12) |
 | SQL + docs "why" | 2/8 (25%) | not run yet |
 | Forecast / anomaly | 5/5 (100%) | 5/5 (100%) |
 | Refuse / out of scope | 5/5 (100%) | 5/5 (100%) |
-| Average latency per judged question | 86.2 s | 13.2 s |
-| Average LLM calls per judged question | 0.88 | 0.67 |
+| Average latency per judged question | 86.2 s | 16.0 s |
+| Average LLM calls per judged question | 0.88 | 0.72 |
 
 **Grading change (v2):** docs08 ("What drove Nvidia's Data Center revenue growth in fiscal year 2024?") accepts the route ["docs"] or ["sql", "docs"], because it asks for a number and its explanation. In v1 only ["docs"] counted, so v1's docs08 result was graded under the stricter rule.
 
@@ -26,12 +26,12 @@ Frozen before any v2 fix (commit 1dcdaf9) and never used for tuning.
 | Metric | v2 |
 |---|---|
 | Routing accuracy (router only) | 11/12 (92%) |
-| SQL execution accuracy | not run yet |
-| Docs: key facts + right filing | not run yet |
-| SQL + docs "why" | not run yet |
+| SQL execution accuracy | 2/2 (100%) |
+| Docs: key facts + right filing | 2/4 (50%) |
+| SQL + docs "why" | 2/4 (50%) |
 | Refuse / out of scope | 2/2 (100%) |
-| Average latency per judged question | 0.0 s |
-| Average LLM calls per judged question | 0.00 |
+| Average latency per judged question | 11.6 s |
+| Average LLM calls per judged question | 1.08 |
 
 ## Retrieval rank tables (no Gemini, v1 questions only)
 
@@ -72,14 +72,20 @@ before step 2: 4 ✓ | after step 2: 16 | now: 14
 ## Failures: v1 questions, v2 run
 
 - **docs03** (docs) What risks does Tesla mention about competition? - missing key facts: manufacturers
-- **sql04** (sql) network/timeout error, will be retried
-- **sql06** (sql) network/timeout error, will be retried
-- **sql09** (sql) network/timeout error, will be retried
+- **docs08** (docs) What drove Nvidia's Data Center revenue growth in fiscal year 2024? - missing key facts: hopper
+- **docs09** (docs) network/timeout error, will be retried
+- **docs12** (docs) network/timeout error, will be retried
+- **why01** (sql+docs) network/timeout error, will be retried
+- **why02** (sql+docs) network/timeout error, will be retried
 
 ## Failures: held-out questions
 
 - **h_docs04** (routing) How does Microsoft return capital to its shareholders? - routed to ['sql']
+- **h_docs03** (docs) What antitrust legal proceedings does Alphabet disclose? - missing key facts: department of justice
+- **h_docs04** (docs) How does Microsoft return capital to its shareholders? - routed to ['sql'], expected ['docs']
+- **h_why01** (sql+docs) Why did Coca-Cola's revenue grow in 2024? - docs part: Not found in the documents.
+- **h_why04** (sql+docs) Why did Nike's net income change in fiscal 2026? - docs part: Not found in the documents.
 
 ## Not answered yet
 
-docs07, docs08, docs09, docs10, docs11, docs12, why01, why02, why03, why04, why05, why06, why07, why08, h_docs01, h_docs02, h_docs03, h_docs04, h_sql01, h_sql02, h_why01, h_why02, h_why03, h_why04
+why03, why04, why05, why06, why07, why08
