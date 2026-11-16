@@ -127,7 +127,49 @@ Designed for the Gemini free tier: at most 2 LLM calls per question, cached answ
 
 Note: the Gemini free tier allows about 20 requests per day per model. `src/llm.py` automatically moves to the next model in `LLM_MODELS` when one is over its limit.
 
-## Known limitations
+## Results (draft)
 
-- **Broad words in risk questions (docs03, Tesla competition).** For "What risks does Tesla mention about competition?", the keyword search favours Risk Factors paragraphs about competition for employees, so the passage about "established and new automobile manufacturers" ranks 14th and does not reach the top 6 sent to the LLM.
-- **Single-quarter "why" questions (why03, Walmart October 2023).** 10-K filings explain changes for the full fiscal year, not for one quarter, so for a quarterly "why" question the right explanation (lapping opioid legal charges) ranks 13th; quarterly reports (10-Q) are not in the document set.
+**Final numbers pending the last 7 questions** (v1 question set: why02 to retry, why03-why08 not yet run; they wait for the next day's free Gemini quota). Source: `eval/results_v2.md`. Accuracy counts judged answers only; network/timeout errors are retried, not counted as wrong.
+
+v1 question set (50 questions), v1 baseline vs v2:
+
+| Metric | v1 (baseline) | v2 (so far) |
+|---|---|---|
+| Routing accuracy (router only) | 44/50 (88%) | 50/50 (100%) |
+| SQL execution accuracy | 18/20 (90%) | 20/20 (100%) |
+| Docs: key facts + right filing | 6/12 (50%) | 10/12 (83%) |
+| SQL + docs "why" | 2/8 (25%) | 1/1 (7 not run yet) |
+| Forecast / anomaly | 5/5 | 5/5 |
+| Refuse / out of scope | 5/5 | 5/5 |
+| Average LLM calls per question | 0.88 | 0.77 |
+
+Held-out set (12 new questions, frozen before any v2 fix and never used for tuning), v2 only:
+
+| Metric | v2 |
+|---|---|
+| Routing accuracy | 11/12 (92%) |
+| SQL execution accuracy | 2/2 |
+| Docs: key facts + right filing | 2/4 (50%) |
+| SQL + docs "why" | 2/4 (50%) |
+| Out of scope | 2/2 |
+
+Grading change in v2: docs08 ("What drove Nvidia's Data Center revenue growth...") accepts the route docs or sql+docs, because it asks for a number and its explanation.
+
+## Known limitations / next steps
+
+Retrieval:
+
+- **Broad words in risk questions (docs03, Tesla competition).** The keyword search favours Risk Factors paragraphs about competition for employees, so the passage about "established and new automobile manufacturers" ranks 14th and does not reach the top 6 sent to the LLM.
+- **Single-quarter "why" questions (why03, Walmart October 2023).** 10-K filings explain changes for the full fiscal year, not one quarter, so the right explanation (lapping opioid legal charges) ranks 13th; quarterly reports (10-Q) are not in the document set.
+
+Answer step (the right excerpts were retrieved, but the answer fell short):
+
+- **A key driver dropped (docs08, Nvidia).** Two of the six excerpts named the Hopper GPU platform, but the answer listed demand, compute and networking growth without it.
+- **Too cautious (held-out, Coca-Cola revenue 2024).** The excerpts described 2024 drivers such as pricing initiatives and volume growth, yet the answer was "Not found in the documents".
+- **Explanation only in numbers (held-out, Nike net income fiscal 2026).** The filing states no reason in words; the reason (a higher effective tax rate on flat pre-tax income) is only visible in the income-statement table, and the LLM is not allowed to calculate.
+
+Routing:
+
+- **Held-out routing miss.** "How does Microsoft return capital to its shareholders?" goes to SQL, because it contains no docs keyword and the example-similarity fallback picks SQL.
+
+Next steps (not started): finish the last 7 v2 questions; then decide whether to work on the answer step (e.g. asking the model to list every driver named in the excerpts, or letting Python compute changes from tables) and on the routing miss.
