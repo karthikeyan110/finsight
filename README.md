@@ -167,6 +167,7 @@ Answer step (the right excerpts were retrieved, but the answer fell short):
 - **A key driver dropped (docs08, Nvidia).** Two of the six excerpts named the Hopper GPU platform, but the answer listed demand, compute and networking growth without it.
 - **Too cautious (held-out, Coca-Cola revenue 2024).** The excerpts described 2024 drivers such as pricing initiatives and volume growth, yet the answer was "Not found in the documents".
 - **Explanation only in numbers (held-out, Nike net income fiscal 2026).** The filing states no reason in words; the reason (a higher effective tax rate on flat pre-tax income) is only visible in the income-statement table, and the LLM is not allowed to calculate.
+- **"Not found" despite the right excerpt (why02, Apple net income fiscal 2024; why06, Tesla operating income 2024).** In the retrieval check both explanation passages ranked 3rd, so they were among the 6 excerpts sent to Gemini (Apple: the $10.2 billion State Aid tax charge; Tesla: lower average selling prices), yet the answer was "Not found in the documents".
 
 Routing:
 
