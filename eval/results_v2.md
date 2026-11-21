@@ -1,6 +1,6 @@
-# FinSight evaluation: v1 vs v2 (2026-11-19)
+# FinSight evaluation: v1 vs v2 (2026-11-21)
 
-v2 answered **50/50** v1 questions and **12/12** held-out questions (4 network/timeout error(s), retried on the next run). Accuracy counts judged answers only.
+v2 answered **50/50** v1 questions and **12/12** held-out questions (0 network/timeout error(s), retried on the next run). Accuracy counts judged answers only.
 
 ## v1 questions (50): v1 vs v2
 
@@ -9,11 +9,11 @@ v2 answered **50/50** v1 questions and **12/12** held-out questions (4 network/t
 | Routing accuracy (router only) | 44/50 (88%) | 50/50 (100%) |
 | SQL execution accuracy | 18/20 (90%) | 20/20 (100%) |
 | Docs: key facts + right filing | 6/12 (50%) | 10/12 (83%) |
-| SQL + docs "why" | 2/8 (25%) | 3/4 (75%) (of 8) |
+| SQL + docs "why" | 2/8 (25%) | 5/8 (62%) |
 | Forecast / anomaly | 5/5 (100%) | 5/5 (100%) |
 | Refuse / out of scope | 5/5 (100%) | 5/5 (100%) |
-| Average latency per judged question | 86.2 s | 19.7 s |
-| Average LLM calls per judged question | 0.88 | 0.78 |
+| Average latency per judged question | 86.2 s | 23.2 s |
+| Average LLM calls per judged question | 0.88 | 0.80 |
 
 **Grading change (v2):** docs08 ("What drove Nvidia's Data Center revenue growth in fiscal year 2024?") accepts the route ["docs"] or ["sql", "docs"], because it asks for a number and its explanation. In v1 only ["docs"] counted, so v1's docs08 result was graded under the stricter rule.
 
@@ -73,11 +73,9 @@ before step 2: 4 ✓ | after step 2: 16 | now: 14
 
 - **docs03** (docs) What risks does Tesla mention about competition? - missing key facts: manufacturers
 - **docs08** (docs) What drove Nvidia's Data Center revenue growth in fiscal year 2024? - missing key facts: hopper
+- **why02** (sql+docs) Why did Apple's net income fall in fiscal 2024? - docs part: Not found in the documents.
+- **why03** (sql+docs) Why did Walmart's operating income jump in the quarter ending October 2023? - docs part: Not found in the documents.
 - **why06** (sql+docs) Why did Tesla's operating income decline in 2024? - docs part: Not found in the documents.
-- **why02** (sql+docs) network/timeout error, will be retried
-- **why03** (sql+docs) network/timeout error, will be retried
-- **why07** (sql+docs) network/timeout error, will be retried
-- **why08** (sql+docs) network/timeout error, will be retried
 
 ## Failures: held-out questions
 

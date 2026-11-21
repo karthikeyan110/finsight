@@ -127,21 +127,21 @@ Designed for the Gemini free tier: at most 2 LLM calls per question, cached answ
 
 Note: the Gemini free tier allows about 20 requests per day per model. `src/llm.py` automatically moves to the next model in `LLM_MODELS` when one is over its limit.
 
-## Results (draft)
+## Results
 
-**Final numbers pending 4 questions** (v1 question set: why02, why03, why07 and why08 hit Google timeouts three times each and will be retried; all other 46 v1 questions and all 12 held-out questions have a judged result). Source: `eval/results_v2.md`. Accuracy counts judged answers only; network/timeout errors are retried, not counted as wrong.
+All 50 v1 questions and all 12 held-out questions have a judged result. Source: `eval/results_v2.md`. Accuracy counts judged answers only; network/timeout errors were retried until each question got a real answer.
 
 v1 question set (50 questions), v1 baseline vs v2:
 
-| Metric | v1 (baseline) | v2 (so far) |
+| Metric | v1 (baseline) | v2 |
 |---|---|---|
 | Routing accuracy (router only) | 44/50 (88%) | 50/50 (100%) |
 | SQL execution accuracy | 18/20 (90%) | 20/20 (100%) |
 | Docs: key facts + right filing | 6/12 (50%) | 10/12 (83%) |
-| SQL + docs "why" | 2/8 (25%) | 3/4 (75%), 4 still to retry |
+| SQL + docs "why" | 2/8 (25%) | 5/8 (62%) |
 | Forecast / anomaly | 5/5 | 5/5 |
 | Refuse / out of scope | 5/5 | 5/5 |
-| Average LLM calls per question | 0.88 | 0.78 |
+| Average LLM calls per question | 0.88 | 0.80 |
 
 Held-out set (12 new questions, frozen before any v2 fix and never used for tuning), v2 only:
 
